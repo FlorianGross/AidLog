@@ -110,6 +110,16 @@ pnpm -r build
 docker compose -f infra/docker-compose.yml up --build
 ```
 
+## Mobile / Native app (Android & iOS)
+
+The same zero-knowledge web client can be shipped as a native **Android** and
+**iOS** app via a thin [Capacitor](https://capacitorjs.com/) shell — no second
+codebase. The static PWA assets are bundled into the app (offline-capable) and
+talk to the same self-hosted API. Set `VITE_API_BASE_URL` at build time to point
+the app at your server (this also auto-extends the CSP). See
+[`docs/MOBILE.md`](docs/MOBILE.md) for the full build + publish workflow and the
+honest caveats (web push, QR scanning, storage durability).
+
 ## License
 
 [AGPL-3.0-or-later](LICENSE) — chosen so self-hosted forks stay open. Discuss in
