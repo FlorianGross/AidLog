@@ -104,7 +104,14 @@ export interface HelperKeyset {
 // Envelope: how a per-record data key (DEK) is wrapped to recipients
 // ---------------------------------------------------------------------------
 
-export type RecipientType = 'org' | 'helper' | 'cosigner' | 'supervisor';
+/**
+ * 'author' is a PERSISTENT wrapper sealing the DEK to the record's OWN author, so
+ * a helper retains read access to records THEY documented permanently and across
+ * devices — even after shift close (which deletes only the transient 'helper'
+ * wrapper). This is the explicitly chosen "Meine Einsätze" tradeoff; see
+ * apps/web/src/lib/crypto/record.ts (buildRecord) and migration 0013.
+ */
+export type RecipientType = 'org' | 'helper' | 'cosigner' | 'supervisor' | 'author';
 
 /** The per-record symmetric DEK, sealed to one recipient's box public key. */
 export interface SealedKey {
@@ -278,6 +285,33 @@ export interface DeploymentSummary {
   updatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// "Meine Einsätze" — the deployments the caller authored (cross-device, read-only)
+//
+// The server groups the caller's OWN records (author_key_id == session.keyId) by
+// deploymentId and returns ONLY non-secret routing metadata: the deployment id,
+// how many records the caller authored in it, and the first/last client
+// timestamps. It NEVER returns ciphertext, titles or categories — the server
+// cannot know those (they live inside the encrypted payload / in client-local
+// DeploymentMeta). The web client decrypts the synced records (now possible via
+// the persistent 'author' sealed-key wrapper) to recover a display label.
+// ---------------------------------------------------------------------------
+
+export interface MyDeploymentSummary {
+  deploymentId: string;
+  /** Number of records the caller authored in this deployment. */
+  recordCount: number;
+  /** Earliest client `createdAt` (ISO 8601) among the caller's records here. */
+  firstCreatedAt: string;
+  /** Latest client `createdAt` (ISO 8601) among the caller's records here. */
+  lastCreatedAt: string;
+}
+
+/** GET ROUTES.myDeployments — the caller's authored deployments, newest first. */
+export interface MyDeploymentsResponse {
+  deployments: MyDeploymentSummary[];
+}
+
 /** Server → client sync: records the client is permitted to read (by role). */
 export interface SyncResponse {
   records: ProtocolRecord[];
@@ -346,6 +380,8 @@ export const ROUTES = {
   // --- CIRS (anonymous critical-incident reporting) ---
   cirs: '/api/cirs', // POST (auth, anonymous) submit a report; GET (admin) list reports to decrypt
   cirsStatus: '/api/cirs/:id/status', // PUT (admin) set a report's QM workflow status
+  // --- "Meine Einsätze" (the caller's own authored deployments, cross-device) ---
+  myDeployments: '/api/my/deployments', // GET (auth) ids+counts+timestamps of deployments the caller authored
 } as const;
 
 /**

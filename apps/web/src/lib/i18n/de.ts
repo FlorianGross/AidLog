@@ -346,6 +346,7 @@ export const de = {
     exportPdf: 'PDF / Druck',
     tabVitals: 'Vitalverlauf',
     tabBodymap: 'Body-Map & Fotos',
+    extraModules: 'Zusatzmodule',
   },
   selfintake: {
     start: 'Selbstauskunft starten',
@@ -401,6 +402,31 @@ export const de = {
     explainTitle: 'Was bedeutet „manipulationssicher“?',
     explain:
       'Jeder Datensatz wird auf diesem Gerät kryptografisch signiert und mit dem vorherigen Datensatz verkettet (Hash-Kette). Eine nachträgliche Änderung – auch durch den Server – würde Signatur oder Kette brechen und hier sofort als Fehler erscheinen. Korrekturen löschen nie etwas: Sie hängen einen neuen Datensatz an, der den alten ersetzt. So bleibt der vollständige Verlauf nachvollziehbar und beweisbar.',
+  },
+  myEinsaetze: {
+    /** Nav + page title. */
+    nav: 'Meine Einsätze',
+    title: 'Meine Einsätze',
+    subtitle: 'Von mir dokumentierte Einsätze – geräteübergreifend, schreibgeschützt',
+    /** Shown when the user has authored no deployments. */
+    empty: 'Noch keine eigenen Einsätze',
+    emptyHint:
+      'Sobald du einen Einsatz dokumentierst, erscheint er hier – auch auf anderen Geräten.',
+    /** Offline / server unreachable. */
+    offlineTitle: 'Keine Verbindung',
+    offlineHint: 'Bitte synchronisieren: „Meine Einsätze“ braucht einmal eine Serververbindung.',
+    /** Placeholder when no local title is known on this device. */
+    untitled: 'Einsatz ohne Titel',
+    /** Forward-only / privacy hint (the explicitly chosen tradeoff). */
+    forwardOnlyHint:
+      'Du hast dauerhaften Lesezugriff auf Einsätze, die du selbst dokumentiert hast – auch nach Schichtende und auf jedem Gerät. Hinweis: Nur Einsätze ab Einführung dieser Funktion sind hier auf neuen Geräten lesbar; ältere Datensätze können nur Organisation/Admin entschlüsseln.',
+    /** Badge on legacy entries that can't be decrypted on this device. */
+    legacyBadge: 'nicht entschlüsselbar',
+    /** Read-only banner shown in the editor for closed deployments. */
+    readOnlyBanner:
+      'Abgeschlossen – schreibgeschützt. Dieser Einsatz kann nicht mehr bearbeitet werden.',
+    dateLabel: 'Datum',
+    countLabel: 'Datensätze',
   },
   vitals: {
     title: 'Vitalparameter-Verlauf',

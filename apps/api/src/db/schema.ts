@@ -185,10 +185,13 @@ export const sealedKeys = pgTable(
       .references(() => records.id, { onDelete: 'restrict' }),
     deploymentId: uuid('deployment_id').notNull(),
     /**
-     * 'org' | 'helper' | 'cosigner' | 'supervisor' (see contracts RecipientType,
-     * CHECK in migrations 0001/0002/0008). Only 'helper' rows are deletable at
-     * shift close. 'supervisor' wrappers seal the DEK to active admins/leads so
-     * they can read per-deployment statistics with their own key.
+     * 'org' | 'helper' | 'cosigner' | 'supervisor' | 'author' (see contracts
+     * RecipientType, CHECK in migrations 0001/0002/0008/0013). Only 'helper' rows
+     * are deletable at shift close. 'supervisor' wrappers seal the DEK to active
+     * admins/leads so they can read per-deployment statistics with their own key.
+     * 'author' wrappers seal the DEK to the record's OWN author PERMANENTLY (never
+     * deleted at shift close) so the author keeps cross-device read access to
+     * records they documented — the "Meine Einsätze" feature.
      */
     recipientType: text('recipient_type').notNull(),
     recipientKeyId: text('recipient_key_id').notNull(),

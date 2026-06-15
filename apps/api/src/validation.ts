@@ -123,10 +123,12 @@ const encryptedBlobRef = z.object({
 
 const sealedKey = z.object({
   // 'supervisor' lets NEW records be additionally sealed to active admins/leads
-  // (see contracts RecipientType + migration 0008). Shared by appendRecordSchema
-  // (protocolRecord.sealedKeys) and the cosign-style sealed-key POSTs below, so a
-  // supervisor wrapper validates wherever a SealedKey is accepted.
-  recipientType: z.enum(['org', 'helper', 'cosigner', 'supervisor']),
+  // (see contracts RecipientType + migration 0008). 'author' is the PERSISTENT
+  // self-wrapper that keeps a helper's own records readable across devices/after
+  // shift close (migration 0013). Shared by appendRecordSchema
+  // (protocolRecord.sealedKeys) and the cosign-style sealed-key POSTs below, so an
+  // author/supervisor wrapper validates wherever a SealedKey is accepted.
+  recipientType: z.enum(['org', 'helper', 'cosigner', 'supervisor', 'author']),
   recipientKeyId: z.string().min(1),
   alg: z.literal('x25519-sealedbox'),
   ciphertext: base64,

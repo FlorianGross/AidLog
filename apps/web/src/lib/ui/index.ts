@@ -11,3 +11,5 @@ export { default as Modal } from './Modal.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
 export { default as Spinner } from './Spinner.svelte';
 export { default as Avatar } from './Avatar.svelte';
+export { default as ChipSelect } from './ChipSelect.svelte';
+export { default as Toggle } from './Toggle.svelte';

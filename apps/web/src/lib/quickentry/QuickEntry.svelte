@@ -12,7 +12,7 @@
 -->
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { Modal, Icon, Spinner } from '$lib/ui';
+  import { Modal, Icon, Spinner, ChipSelect } from '$lib/ui';
   import { saveQuickContact } from './save';
   import {
     VERSORGUNGSART_VALUES,
@@ -49,6 +49,28 @@
 
   let busy = $state(false);
   let error = $state<string | null>(null);
+
+  // Chip option lists (value = stable id, label resolved via i18n). Derived so the
+  // labels react to the active locale. Reuses the shared ChipSelect for big,
+  // fast-tap targets — same stored values as the previous native <select>s.
+  const versorgungsartOptions = $derived(
+    VERSORGUNGSART_VALUES.map((v) => ({
+      value: v,
+      label: $t(`quickentry.versorgungsartValues.${v}`),
+    })),
+  );
+  const verbleibOptions = $derived(
+    VERBLEIB_VALUES.map((v) => ({ value: v, label: $t(`quickentry.verbleibValues.${v}`) })),
+  );
+  const altersgruppeOptions = $derived(
+    ALTERSGRUPPE_VALUES.map((v) => ({ value: v, label: $t(`quickentry.altersgruppeValues.${v}`) })),
+  );
+  const geschlechtOptions = $derived(
+    GESCHLECHT_VALUES.map((v) => ({ value: v, label: $t(`quickentry.geschlechtValues.${v}`) })),
+  );
+  const ersteindruckOptions = $derived(
+    ERSTEINDRUCK_VALUES.map((v) => ({ value: v, label: $t(`quickentry.ersteindruckValues.${v}`) })),
+  );
 
   function reset(): void {
     time = nowHHMM();
@@ -104,59 +126,78 @@
 </script>
 
 <Modal {open} title={$t('quickentry.title')} {onClose}>
-  <form class="space-y-4" onsubmit={onSubmit}>
+  <form class="space-y-5" onsubmit={onSubmit}>
     <p class="text-sm text-muted">{$t('quickentry.intro')}</p>
 
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="field-label" for="qe-time">{$t('quickentry.time')}</label>
-        <input id="qe-time" class="field-input" type="time" bind:value={time} required />
-      </div>
-      <div>
-        <label class="field-label" for="qe-ersteindruck">{$t('quickentry.ersteindruck')}</label>
-        <select id="qe-ersteindruck" class="field-input" bind:value={ersteindruck}>
-          {#each ERSTEINDRUCK_VALUES as v (v)}
-            <option value={v}>{$t(`quickentry.ersteindruckValues.${v}`)}</option>
-          {/each}
-        </select>
+    <!-- Uhrzeit: auto-filled with now; "Jetzt" re-seeds it in one tap. -->
+    <div>
+      <label class="field-label" for="qe-time">{$t('quickentry.time')}</label>
+      <div class="flex items-stretch gap-2">
+        <input
+          id="qe-time"
+          class="field-input min-w-0 flex-1"
+          type="time"
+          bind:value={time}
+          required
+        />
+        <button
+          type="button"
+          class="btn-secondary min-h-touch flex-none px-3 text-sm"
+          onclick={() => (time = nowHHMM())}
+        >
+          {$t('formx.now')}
+        </button>
       </div>
     </div>
 
     <div>
-      <label class="field-label" for="qe-versorgung">{$t('quickentry.versorgungsart')}</label>
-      <select id="qe-versorgung" class="field-input" bind:value={versorgungsart}>
-        {#each VERSORGUNGSART_VALUES as v (v)}
-          <option value={v}>{$t(`quickentry.versorgungsartValues.${v}`)}</option>
-        {/each}
-      </select>
-    </div>
-
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="field-label" for="qe-verbleib">{$t('quickentry.verbleib')}</label>
-        <select id="qe-verbleib" class="field-input" bind:value={verbleib}>
-          {#each VERBLEIB_VALUES as v (v)}
-            <option value={v}>{$t(`quickentry.verbleibValues.${v}`)}</option>
-          {/each}
-        </select>
-      </div>
-      <div>
-        <label class="field-label" for="qe-alter">{$t('quickentry.altersgruppe')}</label>
-        <select id="qe-alter" class="field-input" bind:value={altersgruppe}>
-          {#each ALTERSGRUPPE_VALUES as v (v)}
-            <option value={v}>{$t(`quickentry.altersgruppeValues.${v}`)}</option>
-          {/each}
-        </select>
-      </div>
+      <span class="field-label" id="qe-versorgung">{$t('quickentry.versorgungsart')}</span>
+      <ChipSelect
+        options={versorgungsartOptions}
+        value={versorgungsart}
+        ariaLabelledby="qe-versorgung"
+        onchange={(v) => (versorgungsart = v as Versorgungsart)}
+      />
     </div>
 
     <div>
-      <label class="field-label" for="qe-geschlecht">{$t('quickentry.geschlecht')}</label>
-      <select id="qe-geschlecht" class="field-input" bind:value={geschlecht}>
-        {#each GESCHLECHT_VALUES as v (v)}
-          <option value={v}>{$t(`quickentry.geschlechtValues.${v}`)}</option>
-        {/each}
-      </select>
+      <span class="field-label" id="qe-verbleib">{$t('quickentry.verbleib')}</span>
+      <ChipSelect
+        options={verbleibOptions}
+        value={verbleib}
+        ariaLabelledby="qe-verbleib"
+        onchange={(v) => (verbleib = v)}
+      />
+    </div>
+
+    <div>
+      <span class="field-label" id="qe-alter">{$t('quickentry.altersgruppe')}</span>
+      <ChipSelect
+        options={altersgruppeOptions}
+        value={altersgruppe}
+        ariaLabelledby="qe-alter"
+        onchange={(v) => (altersgruppe = v)}
+      />
+    </div>
+
+    <div>
+      <span class="field-label" id="qe-geschlecht">{$t('quickentry.geschlecht')}</span>
+      <ChipSelect
+        options={geschlechtOptions}
+        value={geschlecht}
+        ariaLabelledby="qe-geschlecht"
+        onchange={(v) => (geschlecht = v)}
+      />
+    </div>
+
+    <div>
+      <span class="field-label" id="qe-ersteindruck">{$t('quickentry.ersteindruck')}</span>
+      <ChipSelect
+        options={ersteindruckOptions}
+        value={ersteindruck}
+        ariaLabelledby="qe-ersteindruck"
+        onchange={(v) => (ersteindruck = v)}
+      />
     </div>
 
     <div>

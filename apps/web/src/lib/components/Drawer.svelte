@@ -40,6 +40,9 @@
 
   const items: NavItem[] = [
     { href: '/', labelKey: 'nav.dashboard', icon: 'dashboard' },
+    // "Meine Einsätze" — every authenticated user's own authored deployments,
+    // read-only and cross-device (sealed to the author via the 'author' wrapper).
+    { href: '/meine-einsaetze/', labelKey: 'myEinsaetze.nav', icon: 'clipboard' },
     { href: '/cosign/', labelKey: 'nav.cosign', icon: 'signature' },
     {
       href: '/admin/users/',

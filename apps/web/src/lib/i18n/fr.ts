@@ -344,6 +344,7 @@ export const fr: LocaleMessages = {
     exportPdf: 'PDF / Impression',
     tabVitals: 'Évolution des constantes',
     tabBodymap: 'Schéma corporel & photos',
+    extraModules: 'Modules supplémentaires',
   },
   selfintake: {
     start: 'Démarrer l’auto-déclaration',
@@ -399,6 +400,24 @@ export const fr: LocaleMessages = {
     explainTitle: 'Que signifie « inviolable » ?',
     explain:
       'Chaque enregistrement est signé cryptographiquement sur cet appareil et chaîné au précédent (chaîne de hachage). Une modification ultérieure – même par le serveur – romprait la signature ou la chaîne et apparaîtrait ici aussitôt comme une erreur. Les corrections n’effacent jamais rien : elles ajoutent un nouvel enregistrement qui remplace l’ancien. L’historique complet reste ainsi traçable et prouvable.',
+  },
+  myEinsaetze: {
+    nav: 'Mes interventions',
+    title: 'Mes interventions',
+    subtitle: 'Interventions que j’ai documentées – multi-appareils, en lecture seule',
+    empty: 'Pas encore d’intervention personnelle',
+    emptyHint:
+      'Dès que vous documentez une intervention, elle apparaît ici – sur tous les appareils.',
+    offlineTitle: 'Pas de connexion',
+    offlineHint:
+      'Veuillez synchroniser : « Mes interventions » nécessite une connexion au serveur une fois.',
+    untitled: 'Intervention sans titre',
+    forwardOnlyHint:
+      'Vous conservez un accès permanent en lecture aux interventions que vous avez documentées vous-même – même après la fin du service et sur tout appareil. Remarque : seules les interventions créées à partir de cette fonction sont lisibles ici sur de nouveaux appareils ; les enregistrements plus anciens ne peuvent être déchiffrés que par l’organisation/l’administrateur.',
+    legacyBadge: 'non déchiffrable',
+    readOnlyBanner: 'Clôturée – en lecture seule. Cette intervention ne peut plus être modifiée.',
+    dateLabel: 'Date',
+    countLabel: 'Enregistrements',
   },
   vitals: {
     title: 'Évolution des constantes vitales',
