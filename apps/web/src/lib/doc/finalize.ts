@@ -21,6 +21,7 @@ import { getOrgPublicIdentity } from './org';
 import type { Draft, DraftSignature } from './draftStore';
 import { photoLabel, type DraftPhoto } from '$lib/bodymap/types';
 import { TRAINING_FLAG_KEY } from '$lib/training';
+import { PROTOCOL_ID_KEY } from '$lib/protocols/marker';
 
 /** Prefix marking a blob label as a signature for field <key>. */
 export const SIGNATURE_LABEL_PREFIX = 'sig-field:';
@@ -101,6 +102,13 @@ export async function finalizeDraft(args: FinalizeArgs): Promise<FinalizeResult>
   // Signature images do NOT belong in the structured payload (they are blobs).
   // Strip any signature field markers so the encrypted JSON stays clean.
   const payload = { ...args.draft.values };
+
+  // Stamp the protocolId so a reader who decrypts this record can regroup the
+  // deployment's records into separate logical patient protocols. All versions
+  // of one protocol (initial + corrections via `supersedes`) share this id. The
+  // chain (seq/prevHash) is UNCHANGED — one chain per deployment. Journal entries
+  // pass no protocolId (they are not patient protocols) and are never stamped.
+  if (args.draft.protocolId) payload[PROTOCOL_ID_KEY] = args.draft.protocolId;
 
   // ÜBUNGS-/DEMO-MODUS: stamp the training marker so any synced device can tell
   // this is practice data (the local DeploymentMeta does not travel with it).

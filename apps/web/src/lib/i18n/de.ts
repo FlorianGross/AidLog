@@ -298,6 +298,19 @@ export const de = {
     noData: 'Noch keine Daten vorhanden.',
     offlineHint: 'Offline',
     quickNew: 'Neuen Einsatz starten',
+    /** Heading over the two create entry points. */
+    createHeading: 'Neu anlegen',
+    /** Entry point 1: a full event/deployment hub. */
+    createEvent: 'Veranstaltung / Dienst anlegen',
+    createEventHint: 'Mehrere Patientenprotokolle, Tagebuch, Material und Statistik.',
+    /** Entry point 2: a single standalone protocol without an event. */
+    createSingle: 'Einzelprotokoll (ohne Veranstaltung)',
+    createSingleHint: 'Direkt ein einzelnes Patientenprotokoll erfassen – ohne Dienst-Drumherum.',
+    createSingleAction: 'Einzelprotokoll starten',
+    /** Auto-title prefix for a single protocol (date appended). */
+    singleTitle: 'Einzelprotokoll',
+    /** Badge marking a single-protocol deployment in lists. */
+    singleBadge: 'Einzel',
   },
   deployment: {
     title: 'Einsatz',
@@ -1679,6 +1692,49 @@ export const de = {
     // {range} is interpolated as e.g. "60–100".
     outOfRange: 'außerhalb Normbereich {range}',
     valueOutOfRange: '{value} außerhalb Normbereich {range}',
+  },
+
+  // --- Protokolle (mehrere Patientenprotokolle pro Einsatz) ----------------
+  protocols: {
+    fallbackLabel: 'Protokoll',
+  },
+
+  // --- Dienst-Übersicht (event hub) + Erfassungs-Seite (capture) ----------
+  hub: {
+    /** Heading of the protocol list in the Dienst hub. */
+    protocolsTitle: 'Patientenprotokolle',
+    protocolsSubtitle: 'Protokolle und Schnell-Erfassungen dieses Dienstes.',
+    /** Primary action: mint a fresh protocol and open its capture page. */
+    newProtocol: 'Neues Protokoll',
+    /** Empty state when no protocols/quick contacts exist yet. */
+    empty: 'Noch keine Protokolle. Lege ein neues an oder nutze die Schnell-Erfassung.',
+    /** Left sidebar heading. */
+    overviewNav: 'Dienst-Übersicht',
+    /** This page's own nav entry. */
+    overview: 'Übersicht',
+    /** Sidebar link to the Wachbericht (currently on the statistics page). */
+    wachbericht: 'Wachbericht',
+    /** Badge/labels for a protocol row. */
+    draftBadge: 'Entwurf',
+    finalBadge: 'abgeschlossen',
+    quickBadge: 'Schnell',
+    /** Status line: open / closed deployment. */
+    statusOpen: 'offen',
+    statusClosed: 'abgeschlossen',
+    /** Opens a single protocol's capture page. */
+    openProtocol: 'Protokoll öffnen',
+  },
+  capture: {
+    /** Title of the focused patient-capture page (fallback when no schema title). */
+    title: 'Protokoll',
+    /** Subtle autosave indicator. */
+    savedIndicator: 'Automatisch gespeichert',
+    /** Heading of the clean "finished" state after finalize. */
+    doneTitle: 'Dokumentation abgeschlossen',
+    doneSubtitle: 'Das Protokoll ist abgeschlossen und signiert.',
+    /** Back to the Dienst hub (event) / dashboard (single). */
+    backToHub: 'Zur Dienst-Übersicht',
+    backToDashboard: 'Zum Dashboard',
   },
 
   // --- Darstellung & Sprache (display + language settings) ----------------

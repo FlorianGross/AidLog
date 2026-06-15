@@ -59,6 +59,16 @@ export interface DeploymentMeta {
    */
   training?: boolean;
   /**
+   * INFORMATIONSARCHITEKTUR (Phase 1): Art des Deployments.
+   *  - 'event'  → eine VERANSTALTUNG/Dienst, die MEHRERE Patientenprotokolle
+   *               enthalten kann (Hub-Ansicht in Phase 2).
+   *  - 'single' → ein einzelnes Protokoll (Direkterfassung in Phase 2).
+   * OPTIONAL/additiv für Rückwärtskompatibilität: Deployments ohne `kind` werden
+   * als 'event' behandelt (heutiger Standardfluss bleibt unverändert). Nicht-
+   * sensible Routing-Metadaten — KEIN IndexedDB-Versionssprung erforderlich.
+   */
+  kind?: 'event' | 'single';
+  /**
    * VERANSTALTUNGS-STAMMDATEN (optional): nicht-sensible, operative Metadaten
    * einer Veranstaltung. Wird LOKAL PRO GERÄT auf der DeploymentMeta gehalten
    * (keine Server-Synchronisation), additiv/optional — KEIN IndexedDB-Versions-

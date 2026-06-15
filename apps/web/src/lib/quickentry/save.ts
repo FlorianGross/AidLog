@@ -14,6 +14,7 @@
  */
 import { getChainHead, getDeployment, bumpDeploymentCount, flush } from '$lib/store';
 import { finalizeDraft } from '$lib/doc/finalize';
+import { newProtocolId } from '$lib/protocols/marker';
 import { loadSupervisors } from '$lib/supervisors';
 import { api } from '$lib/api';
 import type { ProtocolRecord } from '@aidlog/contracts';
@@ -50,6 +51,9 @@ export async function saveQuickContact(
   const { record } = await finalizeDraft({
     draft: {
       deploymentId,
+      // Each quick contact is its OWN tiny protocol → a fresh protocolId so it
+      // lists as a separate entry (vs. full protocols and other quick contacts).
+      protocolId: newProtocolId(),
       schemaId: QUICK_CONTACT_SCHEMA_ID,
       schemaVersion: QUICK_CONTACT_SCHEMA_VERSION,
       values: buildQuickPayload(input),

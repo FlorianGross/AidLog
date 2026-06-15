@@ -17,6 +17,7 @@
     deployments,
     loadDeployments,
     createDeployment,
+    startSingleProtocol,
     loadDashboardStats,
     type DashboardStats,
   } from '$lib/store';
@@ -66,15 +67,48 @@
     stats = await loadDashboardStats();
   });
 
-  async function onCreate(e: SubmitEvent): Promise<void> {
+  // Busy guard so the two entry points can't double-fire.
+  let creating = $state(false);
+
+  /** Entry point 1: a full event/deployment → its lean Dienst hub. */
+  async function onCreateEvent(e: SubmitEvent): Promise<void> {
     e.preventDefault();
     const title = newTitle.trim();
-    if (!title) return;
-    const categoryId = chosenCategory?.id;
-    const meta = await createDeployment(title, categoryId, newTraining);
-    newTitle = '';
-    newTraining = false;
-    await goto(`/deployment/${meta.deploymentId}/`);
+    if (!title || creating) return;
+    creating = true;
+    try {
+      const categoryId = chosenCategory?.id;
+      const meta = await createDeployment(title, categoryId, newTraining, 'event');
+      newTitle = '';
+      newTraining = false;
+      await goto(`/deployment/${meta.deploymentId}/`);
+    } finally {
+      creating = false;
+    }
+  }
+
+  /**
+   * Entry point 2: an Einzelprotokoll (ohne Veranstaltung). Creates a `kind:'single'`
+   * deployment with a sensible auto-title (date), mints its one protocolId, and
+   * routes STRAIGHT to the capture page (the hub is skipped for single deployments).
+   */
+  async function onCreateSingle(): Promise<void> {
+    if (creating) return;
+    creating = true;
+    try {
+      const today = new Date().toLocaleDateString('de-DE');
+      const title = `${$t('dashboard.singleTitle')} · ${today}`;
+      const categoryId = chosenCategory?.id;
+      const { deploymentId, protocolId } = await startSingleProtocol(
+        title,
+        categoryId,
+        newTraining,
+      );
+      newTraining = false;
+      await goto(`/deployment/${deploymentId}/protokoll/${protocolId}/`);
+    } finally {
+      creating = false;
+    }
   }
 
   function fmt(n: number | null | undefined): string {
@@ -93,44 +127,93 @@
     <p class="text-muted">{$t('dashboard.subtitle')}</p>
   </header>
 
-  <!-- Quick action: start a new deployment -->
-  <div class="card space-y-3">
-    <form class="flex flex-col gap-3 sm:flex-row sm:items-end" onsubmit={onCreate}>
-      <!-- Category picker: only categories the current role may create. Hidden
-           entirely when the org has 0–1 creatable categories (single → implicit). -->
-      {#if creatable.length > 1}
-        <div class="sm:w-56">
-          <label class="field-label" for="new-category">{$t('categories.pickLabel')}</label>
-          <select id="new-category" class="field-input" bind:value={selectedCategoryId}>
-            {#each creatable as c (c.id)}
-              <option value={c.id}>{c.name}</option>
-            {/each}
-          </select>
+  <!-- Two clear entry points: a full event/deployment (→ hub) or a standalone
+       Einzelprotokoll (→ straight to the capture page). -->
+  <div class="space-y-3">
+    <h2 class="text-lg font-semibold text-fg">{$t('dashboard.createHeading')}</h2>
+    <div class="grid gap-4 lg:grid-cols-2">
+      <!-- Entry point 1: Veranstaltung / Dienst anlegen. -->
+      <form class="card space-y-3" onsubmit={onCreateEvent}>
+        <div class="flex items-start gap-2">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-soft-fg"
+          >
+            <Icon name="clipboard" size={18} />
+          </span>
+          <div class="min-w-0">
+            <div class="font-medium text-fg">{$t('dashboard.createEvent')}</div>
+            <p class="text-xs text-subtle">{$t('dashboard.createEventHint')}</p>
+          </div>
         </div>
-      {/if}
-      <div class="flex-1">
-        <label class="field-label" for="new-deployment">
-          {chosenCategory ? deploymentLabel : $t('deployment.name')}
-        </label>
-        <input
-          id="new-deployment"
-          class="field-input"
-          placeholder={$t('deployment.namePlaceholder')}
-          bind:value={newTitle}
-        />
+        <!-- Category picker: only categories the current role may create. Hidden
+             entirely when the org has 0–1 creatable categories. -->
+        {#if creatable.length > 1}
+          <div>
+            <label class="field-label" for="new-category">{$t('categories.pickLabel')}</label>
+            <select id="new-category" class="field-input" bind:value={selectedCategoryId}>
+              {#each creatable as c (c.id)}
+                <option value={c.id}>{c.name}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+        <div>
+          <label class="field-label" for="new-deployment">
+            {chosenCategory ? deploymentLabel : $t('deployment.name')}
+          </label>
+          <input
+            id="new-deployment"
+            class="field-input"
+            placeholder={$t('deployment.namePlaceholder')}
+            bind:value={newTitle}
+          />
+        </div>
+        <button
+          type="submit"
+          class="btn-primary w-full"
+          disabled={creating || (hasAnyCategories && creatable.length === 0)}
+        >
+          <Icon name="plus" size={20} />
+          {chosenCategory
+            ? $t('categories.createWithLabel', { label: deploymentLabel })
+            : $t('dashboard.createEvent')}
+        </button>
+        {#if onlyCategory}
+          <p class="text-xs text-subtle">
+            {$t('categories.singleHint', { name: onlyCategory.name })}
+          </p>
+        {:else if hasAnyCategories && creatable.length === 0}
+          <p class="text-xs text-warning">{$t('categories.noneForRole')}</p>
+        {/if}
+      </form>
+
+      <!-- Entry point 2: Einzelprotokoll (ohne Veranstaltung). -->
+      <div class="card flex flex-col gap-3">
+        <div class="flex items-start gap-2">
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-muted"
+          >
+            <Icon name="file-text" size={18} />
+          </span>
+          <div class="min-w-0">
+            <div class="font-medium text-fg">{$t('dashboard.createSingle')}</div>
+            <p class="text-xs text-subtle">{$t('dashboard.createSingleHint')}</p>
+          </div>
+        </div>
+        <div class="flex-1"></div>
+        <button
+          type="button"
+          class="btn-secondary w-full"
+          disabled={creating || (hasAnyCategories && creatable.length === 0)}
+          onclick={onCreateSingle}
+        >
+          <Icon name="plus" size={20} />
+          {$t('dashboard.createSingleAction')}
+        </button>
       </div>
-      <button
-        type="submit"
-        class="btn-primary px-6"
-        disabled={hasAnyCategories && creatable.length === 0}
-      >
-        <Icon name="plus" size={20} />
-        {chosenCategory
-          ? $t('categories.createWithLabel', { label: deploymentLabel })
-          : $t('dashboard.quickNew')}
-      </button>
-    </form>
-    <!-- ÜBUNGS-/DEMO-MODUS: mark this deployment as a training/exercise. -->
+    </div>
+
+    <!-- ÜBUNGS-/DEMO-MODUS: applies to whichever entry point is used next. -->
     <label class="flex items-start gap-2 text-sm text-fg">
       <input type="checkbox" class="mt-0.5" bind:checked={newTraining} />
       <span>
@@ -138,13 +221,6 @@
         <span class="mt-0.5 block text-xs text-subtle">{$t('training.hint')}</span>
       </span>
     </label>
-    {#if onlyCategory}
-      <p class="text-xs text-subtle">
-        {$t('categories.singleHint', { name: onlyCategory.name })}
-      </p>
-    {:else if hasAnyCategories && creatable.length === 0}
-      <p class="text-xs text-warning">{$t('categories.noneForRole')}</p>
-    {/if}
   </div>
 
   <!-- Stat cards -->
@@ -235,6 +311,9 @@
               {/if}
               {#if d.training}
                 <Badge tone="warning">{$t('training.badge')}</Badge>
+              {/if}
+              {#if d.kind === 'single'}
+                <Badge tone="muted">{$t('dashboard.singleBadge')}</Badge>
               {/if}
               <span class="truncate font-medium text-fg">{d.title}</span>
             </a>
