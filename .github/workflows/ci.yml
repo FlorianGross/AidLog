@@ -51,6 +51,16 @@ jobs:
       - name: Install (frozen lockfile)
         run: corepack pnpm install --frozen-lockfile
 
+      # @aidlog/contracts and @aidlog/crypto-core are consumed via their built
+      # dist/ (package.json "types"/"exports" point at dist). Typecheck and test
+      # of the dependents (crypto-core, api, web) therefore need those type
+      # declarations to exist. Build the workspace libraries first, in dependency
+      # order (contracts -> crypto-core), so the dist/ persists for every step
+      # below. Without this, `pnpm -r typecheck` fails on a clean checkout with
+      # "Cannot find module '@aidlog/contracts'".
+      - name: Build workspace libraries
+        run: corepack pnpm --filter @aidlog/contracts build && corepack pnpm --filter @aidlog/crypto-core build
+
       - name: Typecheck
         run: corepack pnpm -r typecheck
 
