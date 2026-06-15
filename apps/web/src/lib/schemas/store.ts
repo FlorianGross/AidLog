@@ -15,6 +15,7 @@ import { writable, type Readable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { ROUTES, type OrgSchemaDocument, type SetOrgSchemaRequest } from '@aidlog/contracts';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 import { abcdeSchema } from './abcde';
 import { handoverSchema } from './handover';
 import type { DocSchema } from './types';
@@ -42,7 +43,7 @@ function isDocSchema(v: unknown): v is DocSchema {
 }
 
 function apiBase(): string {
-  return (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  return getApiBase();
 }
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {

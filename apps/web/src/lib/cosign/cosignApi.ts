@@ -22,9 +22,10 @@ import {
   type UserListResponse,
 } from '@aidlog/contracts';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 
 function baseUrl(): string {
-  return (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  return getApiBase();
 }
 
 async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {

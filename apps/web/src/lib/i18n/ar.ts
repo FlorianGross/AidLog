@@ -9,6 +9,23 @@
 import type { LocaleMessages } from './index';
 
 export const ar: LocaleMessages = {
+  server: {
+    title: 'إعداد الخادم',
+    subtitle: 'أدخل عنوان خادم Aidlog. يُحفظ على هذا الجهاز فقط.',
+    urlLabel: 'عنوان الخادم',
+    urlPlaceholder: 'https://aidlog.example.org',
+    hint: 'العنوان الكامل بما في ذلك ‎https://‎ — العنوان الذي يتوفر عليه خادمك.',
+    test: 'اختبار الاتصال',
+    testing: '… جارٍ الاختبار',
+    reachable: 'الخادم متاح.',
+    unreachable: 'تعذّر الوصول إلى الخادم. يُرجى التحقق من العنوان.',
+    invalidUrl: 'عنوان غير صالح. يُرجى إدخال عنوان ‎https://‎ كامل.',
+    save: 'حفظ ومتابعة',
+    note: 'يمكنك تغيير الخادم لاحقًا في أي وقت.',
+    change: 'تغيير الخادم',
+    connectedTo: 'متصل بـ',
+    sameOrigin: 'الخادم نفسه (افتراضي)',
+  },
   app: {
     name: 'Aidlog',
     tagline: 'توثيق المهام بتشفير من طرف إلى طرف',

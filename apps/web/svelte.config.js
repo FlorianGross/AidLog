@@ -15,7 +15,13 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
  * via `VITE_API_BASE_URL` (same var the app uses to point `fetch` at the API),
  * so we read it here and append ONLY that origin.
  *
- * When the var is unset (the normal web/PWA build) `connect-src` is byte-for-
+ * RUNTIME server configuration (VITE_RUNTIME_API_CONFIG): a build can instead
+ * let the USER pick the API server on first start (so a SINGLE native binary can
+ * point at any self-hosted host without a rebuild). That origin is unknown here,
+ * so we widen `connect-src` to accept ANY `https:` origin (TLS enforced; a native
+ * WebView runs from a secure context and blocks plain-http cross-origin anyway).
+ *
+ * When NEITHER var is set (the normal web/PWA build) `connect-src` is byte-for-
  * byte unchanged: just `['self']`. The parse is defensive — invalid values are
  * ignored rather than breaking the build.
  */
@@ -27,6 +33,11 @@ if (apiBaseUrl) {
   } catch {
     // Invalid VITE_API_BASE_URL — ignore and keep connect-src at 'self'.
   }
+}
+const runtimeApiConfig = process.env.VITE_RUNTIME_API_CONFIG;
+if (runtimeApiConfig === '1' || runtimeApiConfig === 'true') {
+  // The server origin is chosen at runtime; allow any HTTPS origin.
+  connectSrc.push('https:');
 }
 
 /**
@@ -74,9 +85,9 @@ const config = {
         'style-src': ['self', 'unsafe-inline'],
         'img-src': ['self', 'blob:', 'data:'],
         'font-src': ['self'],
-        // 'self' for the same-origin web/PWA build; for a native Capacitor
-        // build the remote API origin (derived from VITE_API_BASE_URL above) is
-        // appended so the cross-origin WebView can reach the API.
+        // 'self' for the same-origin web/PWA build; a native/cross-origin build
+        // appends either the fixed VITE_API_BASE_URL origin or — for runtime
+        // server configuration — any `https:` origin (see derivation above).
         'connect-src': connectSrc,
         'worker-src': ['self', 'blob:'],
         'manifest-src': ['self'],

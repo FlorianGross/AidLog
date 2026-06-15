@@ -6,9 +6,9 @@ denselben zero-knowledge Web-Client (`apps/web`) — es gibt **keine zweite
 Codebasis**. Die statischen Assets werden in die App gebündelt, laufen offline
 und reden mit demselben selbst-gehosteten API-Server wie die PWA.
 
-> Die reine Web-/PWA-Auslieferung bleibt davon **unberührt**. Solange
-> `VITE_API_BASE_URL` nicht gesetzt ist, ist der Web-Build Byte-für-Byte
-> identisch zu vorher.
+> Die reine Web-/PWA-Auslieferung bleibt davon **unberührt**. Solange weder
+> `VITE_API_BASE_URL` noch `VITE_RUNTIME_API_CONFIG` gesetzt ist, ist der
+> Web-Build Byte-für-Byte identisch zu vorher.
 
 ---
 
@@ -43,11 +43,37 @@ Node 20+ und pnpm 9 (`corepack enable`) wie im Haupt-README.
 
 ---
 
-## Schritt 1 (kritisch): Server-URL setzen
+## Schritt 1 (kritisch): Server-Konfiguration
 
 Die native App lädt ihre Oberfläche aus einem **lokalen** Origin, der API-Server
 liegt aber auf einem **entfernten** Host — das ist aus Sicht des WebViews
-**cross-origin**. Daher musst du die Server-URL zur **Build-Zeit** setzen:
+**cross-origin**. Es gibt zwei Wege, der App den Server bekannt zu machen:
+
+### Empfohlen: Server bei der **ersten Nutzung** festlegen (kein Rebuild pro Server)
+
+Setze **eine** Build-Flag und lass die Server-Adresse die Nutzerin/den Nutzer
+beim **ersten App-Start** eingeben:
+
+```bash
+export VITE_RUNTIME_API_CONFIG=1
+```
+
+Damit gilt:
+
+1. Beim ersten Start zeigt die App einen Bildschirm **„Server festlegen"**
+   (`/server`), auf dem die Server-Adresse eingegeben und getestet wird. Sie wird
+   **lokal** auf dem Gerät gespeichert (nicht-geheime Betriebskonfiguration, kein
+   Schlüsselmaterial) und kann später jederzeit geändert werden
+   (`apps/web/src/lib/config/serverUrl.ts`).
+2. Der Build weitet die CSP-Direktive `connect-src` auf **jeden `https:`-Origin**
+   aus (siehe `apps/web/svelte.config.js`), da der konkrete Origin zur Build-Zeit
+   noch nicht feststeht. TLS wird erzwungen — der WebView läuft in einem Secure
+   Context und blockiert ohnehin Klartext-HTTP.
+
+So lässt sich **ein** signiertes Binary an **beliebige** selbst-gehostete Server
+verteilen, ohne pro Server neu zu bauen.
+
+### Alternative: Server-URL fest einbacken (ein Server pro Build)
 
 ```bash
 export VITE_API_BASE_URL=https://aidlog.example.org
@@ -56,19 +82,23 @@ export VITE_API_BASE_URL=https://aidlog.example.org
 Das bewirkt zwei Dinge gleichzeitig:
 
 1. Der Client schickt seine `fetch`-Aufrufe an `https://aidlog.example.org/api/...`
-   (siehe `apps/web/src/lib/api.ts`).
-2. Der Build trägt diesen Origin **automatisch** in die CSP-Direktive
-   `connect-src` ein (siehe `apps/web/svelte.config.js`). Ohne diesen Eintrag
-   würde der WebView jeden API-Aufruf blockieren.
+   (siehe `apps/web/src/lib/api.ts`). Der „Server festlegen"-Bildschirm entfällt.
+2. Der Build trägt **genau diesen** Origin in die CSP-Direktive `connect-src`
+   ein (engste Variante).
 
-Belegt durch zwei Builds:
+Belegt durch drei Builds:
 
 ```text
 # ohne Env (Web/PWA):
 connect-src 'self'
-# mit VITE_API_BASE_URL=https://aidlog.example.org (nativ):
+# mit VITE_API_BASE_URL=https://aidlog.example.org (fest):
 connect-src 'self' https://aidlog.example.org
+# mit VITE_RUNTIME_API_CONFIG=1 (Laufzeit-Konfig):
+connect-src 'self' https:
 ```
+
+> Wird ein Wert zur Laufzeit gesetzt, hat er Vorrang vor einem eingebackenen
+> `VITE_API_BASE_URL`.
 
 > **Vor Veröffentlichung:** In `apps/web/capacitor.config.ts` `appId`
 > (`org.aidlog.app`) und `appName` auf deine eigene Reverse-DNS-ID / Markenname
@@ -83,7 +113,9 @@ connect-src 'self' https://aidlog.example.org
 corepack pnpm --filter @aidlog/web cap:add:android
 
 # bei jeder Änderung am Web-Client: bauen + in die native App synchronisieren
-export VITE_API_BASE_URL=https://aidlog.example.org
+# empfohlen: Server-Konfiguration zur Laufzeit (Nutzer wählt beim ersten Start)
+export VITE_RUNTIME_API_CONFIG=1
+# ODER fest einbacken: export VITE_API_BASE_URL=https://aidlog.example.org
 corepack pnpm --filter @aidlog/web cap:sync
 
 # Android Studio öffnen
@@ -94,7 +126,8 @@ In Android Studio dann: **Build → Generate Signed Bundle / APK** → Keystore
 anlegen/wählen → AAB (für Play Store) oder APK erzeugen.
 
 `cap:sync` führt `vite build` aus **und** kopiert das frische `build/` in das
-native Projekt. Die `VITE_API_BASE_URL` muss also bei `cap:sync` gesetzt sein.
+native Projekt. Die jeweilige Env (`VITE_RUNTIME_API_CONFIG` **oder**
+`VITE_API_BASE_URL`) muss also bei `cap:sync` gesetzt sein.
 
 ---
 
@@ -107,7 +140,8 @@ iOS erfordert macOS, Xcode und CocoaPods — auf Windows/Linux **nicht möglich*
 corepack enable
 pnpm install
 
-export VITE_API_BASE_URL=https://aidlog.example.org
+export VITE_RUNTIME_API_CONFIG=1                    # Server beim ersten Start wählen
+# ODER fest: export VITE_API_BASE_URL=https://aidlog.example.org
 corepack pnpm --filter @aidlog/web cap:add:ios     # einmalig
 corepack pnpm --filter @aidlog/web cap:sync
 corepack pnpm --filter @aidlog/web cap:ios          # öffnet Xcode
@@ -125,7 +159,11 @@ verteilen.
   `webDir: 'build'`, Android-`scheme: 'https'`. **Kein** `server.url` — die App
   bündelt die statischen Assets und ruft die API cross-origin.
 - `apps/web/svelte.config.js` — leitet den CSP-`connect-src` aus
-  `VITE_API_BASE_URL` ab (defensiv geparst).
+  `VITE_API_BASE_URL` (fester Origin) bzw. `VITE_RUNTIME_API_CONFIG` (→ `https:`)
+  ab (defensiv geparst).
+- `apps/web/src/lib/config/serverUrl.ts` — Laufzeit-Server-URL: Auflösung
+  (Laufzeit → Build-Zeit → same-origin), Validierung, Persistenz. Die Route
+  `apps/web/src/routes/server/+page.svelte` ist der „Server festlegen"-Bildschirm.
 - `apps/web/package.json` — Scripts `cap:sync`, `cap:add:android`,
   `cap:add:ios`, `cap:android`, `cap:ios`.
 - `.gitignore` — `apps/web/android/` und `apps/web/ios/` sind ignoriert (groß,

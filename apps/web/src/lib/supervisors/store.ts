@@ -25,13 +25,14 @@ import {
   type SupervisorRecipient,
 } from '@aidlog/contracts';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 
 const CACHE_KEY = 'aidlog-org-supervisors';
 
 let cache: SupervisorRecipient[] = [];
 
 function apiBase(): string {
-  return (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  return getApiBase();
 }
 
 function authHeaders(): Record<string, string> {

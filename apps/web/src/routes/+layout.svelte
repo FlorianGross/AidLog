@@ -22,6 +22,7 @@
   import { initTheme } from '$lib/theme';
   import { initDisplayMode } from '$lib/display';
   import { startIdleWatch, stopIdleWatch } from '$lib/security';
+  import { isServerConfigRequired } from '$lib/config/serverUrl';
   import Drawer from '$lib/components/Drawer.svelte';
   import { Icon, ThemeToggle, Avatar } from '$lib/ui';
 
@@ -32,7 +33,15 @@
   let displayName = $state<string | null>(null);
 
   // Routes that render WITHOUT the app shell (pre-unlock auth flows).
-  const AUTH_ROUTES = ['/login', '/setup', '/redeem', '/recover', '/device-add', '/welcome'];
+  const AUTH_ROUTES = [
+    '/login',
+    '/setup',
+    '/redeem',
+    '/recover',
+    '/device-add',
+    '/welcome',
+    '/server',
+  ];
   const isAuthRoute = $derived(AUTH_ROUTES.some((r) => $page.url.pathname.startsWith(r)));
 
   // Map the current route to a header title (i18n keyed).
@@ -58,6 +67,11 @@
     initTheme();
     initDisplayMode();
     initLocale();
+    // First-start gate: a runtime-config build (or native app) with no server
+    // URL set yet must pick one before anything can reach the API.
+    if (isServerConfigRequired() && !$page.url.pathname.startsWith('/server')) {
+      void goto('/server/');
+    }
     const teardown = initConnectivity();
     // Inactivity auto-lock + lock-on-background. The watcher self-arms once a
     // session is unlocked and re-arms after each login, so starting it once

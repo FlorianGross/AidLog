@@ -11,6 +11,7 @@
  */
 import { crypto } from '@aidlog/crypto-core';
 import type { IdentityKeyPair } from '@aidlog/crypto-core';
+import { getApiBase } from './config/serverUrl';
 import {
   ROUTES,
   type AnchorListResponse,
@@ -82,11 +83,22 @@ export class ApiClientError extends Error {
 export class ApiClient {
   private token: string | null = null;
 
-  constructor(private baseUrl = '') {
+  /**
+   * `baseUrl` may be a static string OR a resolver function. The default
+   * singleton passes a resolver ({@link getApiBase}) so a server URL the user
+   * chooses at RUNTIME (first-start config) takes effect immediately, without
+   * the base being frozen at construction time.
+   */
+  constructor(private baseUrl: string | (() => string) = '') {
     // Rehydrate a non-secret session token from sessionStorage (tab-scoped).
     if (typeof sessionStorage !== 'undefined') {
       this.token = sessionStorage.getItem(TOKEN_KEY);
     }
+  }
+
+  /** Resolve the effective base URL (runtime-config aware). */
+  private base(): string {
+    return typeof this.baseUrl === 'function' ? this.baseUrl() : this.baseUrl;
   }
 
   setToken(token: string | null): void {
@@ -107,7 +119,7 @@ export class ApiClient {
     headers.set('content-type', 'application/json');
     if (this.token) headers.set('authorization', `Bearer ${this.token}`);
 
-    const res = await fetch(this.baseUrl + path, { ...init, headers });
+    const res = await fetch(this.base() + path, { ...init, headers });
     const text = await res.text();
     const body = text ? JSON.parse(text) : undefined;
     if (!res.ok) {
@@ -491,5 +503,9 @@ export class ApiClient {
 /** Convenience helper used by registration flows that only need a wrapped key. */
 export type { WrappedSecretKey };
 
-/** Default singleton bound to same-origin (the PWA is served by/with the API). */
-export const api = new ApiClient(import.meta.env?.VITE_API_BASE_URL ?? '');
+/**
+ * Default singleton. The base URL is resolved per-request via {@link getApiBase}
+ * so it honours, in order: a runtime server URL the user set on first start, the
+ * build-time `VITE_API_BASE_URL`, or same-origin (the PWA served by/with the API).
+ */
+export const api = new ApiClient(getApiBase);

@@ -8,6 +8,24 @@
 import type { LocaleMessages } from './index';
 
 export const fr: LocaleMessages = {
+  server: {
+    title: 'Configurer le serveur',
+    subtitle:
+      'Saisissez l’adresse de votre serveur Aidlog. Elle n’est enregistrée que sur cet appareil.',
+    urlLabel: 'Adresse du serveur',
+    urlPlaceholder: 'https://aidlog.example.org',
+    hint: 'Adresse complète avec https:// — l’adresse à laquelle votre serveur est joignable.',
+    test: 'Tester la connexion',
+    testing: 'Test en cours …',
+    reachable: 'Serveur joignable.',
+    unreachable: 'Serveur injoignable. Veuillez vérifier l’adresse.',
+    invalidUrl: 'Adresse invalide. Veuillez saisir une URL https:// complète.',
+    save: 'Enregistrer et continuer',
+    note: 'Vous pouvez changer de serveur à tout moment.',
+    change: 'Changer de serveur',
+    connectedTo: 'Connecté à',
+    sameOrigin: 'même serveur (par défaut)',
+  },
   app: {
     name: 'Aidlog',
     tagline: 'Documentation d’intervention chiffrée de bout en bout',

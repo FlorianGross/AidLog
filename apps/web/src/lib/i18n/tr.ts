@@ -8,6 +8,23 @@
 import type { LocaleMessages } from './index';
 
 export const tr: LocaleMessages = {
+  server: {
+    title: 'Sunucuyu ayarla',
+    subtitle: 'Aidlog sunucu adresini girin. Yalnızca bu cihazda saklanır.',
+    urlLabel: 'Sunucu adresi',
+    urlPlaceholder: 'https://aidlog.example.org',
+    hint: 'https:// dahil tam adres — sunucunuza erişilen adres.',
+    test: 'Bağlantıyı test et',
+    testing: 'Test ediliyor …',
+    reachable: 'Sunucuya ulaşılabiliyor.',
+    unreachable: 'Sunucuya ulaşılamıyor. Lütfen adresi kontrol edin.',
+    invalidUrl: 'Geçersiz adres. Lütfen tam bir https:// adresi girin.',
+    save: 'Kaydet ve devam et',
+    note: 'Sunucuyu daha sonra istediğiniz zaman değiştirebilirsiniz.',
+    change: 'Sunucuyu değiştir',
+    connectedTo: 'Bağlı',
+    sameOrigin: 'aynı sunucu (varsayılan)',
+  },
   app: {
     name: 'Aidlog',
     tagline: 'Uçtan uca şifreli görev dokümantasyonu',
