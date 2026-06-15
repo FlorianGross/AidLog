@@ -23,10 +23,17 @@ import { records, sealedKeys, helpers, orgs } from '../db/schema.js';
 import { badRequest, conflict, forbidden, sendError } from '../errors.js';
 
 export async function recordRoutes(app: FastifyInstance): Promise<void> {
-  const { db } = app.ctx;
+  const { db, config } = app.ctx;
   await cryptoCore.ready();
 
-  app.post(ROUTES.records, { preHandler: app.requireAuth }, async (req, reply) => {
+  // A global rate limit already applies to every route; this makes it EXPLICIT
+  // per-route for the append-record write endpoint (defense in depth).
+  const writeLimited = {
+    preHandler: app.requireAuth,
+    config: { rateLimit: { max: config.RATE_LIMIT_MAX, timeWindow: config.RATE_LIMIT_WINDOW } },
+  };
+
+  app.post(ROUTES.records, writeLimited, async (req, reply) => {
     const parsed = appendRecordSchema.safeParse(req.body);
     if (!parsed.success) return sendError(reply, badRequest('invalid record', parsed.error.issues));
     const record = parsed.data.record as ProtocolRecord;

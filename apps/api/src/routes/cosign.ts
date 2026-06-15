@@ -39,8 +39,15 @@ export async function cosignRoutes(app: FastifyInstance): Promise<void> {
   const { db, config } = app.ctx;
   await cryptoCore.ready();
 
+  // A global rate limit already applies to every route; make it EXPLICIT
+  // per-route on these co-signature WRITE endpoints (defense in depth).
+  const writeLimited = {
+    preHandler: app.requireAuth,
+    config: { rateLimit: { max: config.RATE_LIMIT_MAX, timeWindow: config.RATE_LIMIT_WINDOW } },
+  };
+
   // --- append cosigner sealed keys to an existing record -----------------
-  app.post(ROUTES.sealedKeys, { preHandler: app.requireAuth }, async (req, reply) => {
+  app.post(ROUTES.sealedKeys, writeLimited, async (req, reply) => {
     const parsed = addSealedKeysSchema.safeParse(req.body);
     if (!parsed.success)
       return sendError(reply, badRequest('invalid sealed keys', parsed.error.issues));
@@ -55,7 +62,7 @@ export async function cosignRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // --- create a co-signature request -------------------------------------
-  app.post(ROUTES.cosignRequests, { preHandler: app.requireAuth }, async (req, reply) => {
+  app.post(ROUTES.cosignRequests, writeLimited, async (req, reply) => {
     const parsed = createCosignatureSchema.safeParse(req.body);
     if (!parsed.success)
       return sendError(reply, badRequest('invalid cosign request', parsed.error.issues));
@@ -128,7 +135,7 @@ export async function cosignRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // --- submit a co-signature (or rejection) ------------------------------
-  app.post(ROUTES.cosignSubmit, { preHandler: app.requireAuth }, async (req, reply) => {
+  app.post(ROUTES.cosignSubmit, writeLimited, async (req, reply) => {
     const parsed = submitCosignatureSchema.safeParse(req.body);
     if (!parsed.success)
       return sendError(reply, badRequest('invalid cosignature', parsed.error.issues));
