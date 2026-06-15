@@ -14,4 +14,8 @@
 #   stages (which are intentionally not the runtime stage) and prove noisy, pin
 #   the precise AVD id here with a comment rather than lowering the global severity.
 #
-# (no active ignores)
+# esbuild "missing binary integrity verification in Deno" — not applicable: we
+# install with Node + pnpm (lockfile/registry integrity), never Deno. DEV-only
+# transitive (vite/vitest/tsx/drizzle-kit), excluded from the production deploy
+# tree. Accepted until 2026-12-15 — mirrors osv-scanner.toml + pnpm auditConfig.
+GHSA-gv7w-rqvm-qjhr

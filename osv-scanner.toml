@@ -16,4 +16,13 @@
 # reason = "dev-only, not in the production deploy tree"
 # ignoreUntil = 2026-09-01
 
-# (no active ignores — the gate fails on any new advisory in the lockfile)
+[[IgnoredVulns]]
+id = "GHSA-gv7w-rqvm-qjhr"
+# esbuild "missing binary integrity verification IN DENO" — not applicable: we
+# install with Node + pnpm (integrity enforced via the lockfile + registry
+# hashes), never Deno. esbuild is also a DEV-only transitive dep (vite, vitest,
+# tsx, drizzle-kit) and is excluded from the production deploy tree
+# (`pnpm deploy --prod`). The patched esbuild (>=0.28.1) is not yet required by
+# any of those parents, so a forced override would risk breaking vite's build.
+reason = "Deno-specific (we use Node/pnpm); dev-only transitive, not in the production deploy tree"
+ignoreUntil = 2026-12-15
