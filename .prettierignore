@@ -1,0 +1,22 @@
+# Generated, vendored, and machine-managed files — not hand-formatted.
+node_modules/
+dist/
+build/
+.svelte-kit/
+coverage/
+
+# Lockfile is managed by pnpm, not Prettier.
+pnpm-lock.yaml
+
+# SBOM / scan artifacts produced in CI.
+*.cdx.json
+*.sarif
+
+# Formats Prettier has no parser for (TOML / ignore files).
+*.toml
+.trivyignore
+.gitleaks.toml
+.dockerignore
+.gitignore
+.prettierignore
+.editorconfig

@@ -1,0 +1,67 @@
+name: ci
+
+# Core build/test/format/compliance gate. Every job here is intended to be a
+# REQUIRED status check on the protected branch (see docs/CI_AND_COMPLIANCE.md).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Cheap, fast, deterministic gate — runs on a single Node and fails the PR
+  # immediately if a crypto-boundary or PII/secret-leakage rule is violated.
+  compliance:
+    name: compliance (crypto-lint + privacy-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run compliance linters
+        # Pure Node, no install needed. compliance:check = crypto-lint + privacy-lint.
+        run: node scripts/crypto-lint.mjs && node scripts/privacy-lint.mjs
+
+  build-test:
+    name: build-test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack (pinned pnpm from package.json)
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: corepack pnpm -r typecheck
+
+      - name: Build
+        run: corepack pnpm -r build
+
+      - name: Test
+        run: corepack pnpm -r test
+
+      - name: Prettier format check
+        run: corepack pnpm run format:check
+
+      - name: Compliance check (crypto-lint + privacy-lint)
+        run: corepack pnpm run compliance:check

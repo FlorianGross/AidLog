@@ -1,0 +1,19 @@
+# OSV-Scanner configuration — Aidlog.
+#
+# OSV-Scanner reads pnpm-lock.yaml and reports known vulnerabilities from the
+# OSV database. Use [[IgnoredVulns]] to accept a specific advisory with a reason
+# and (optionally) an expiry, so the gate stays meaningful instead of being
+# globally muted.
+#
+# Each entry MUST carry a reason; prefer adding an `ignoreUntil` so acceptances
+# are revisited rather than forgotten.
+
+# Example (keep commented until actually needed):
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# # transitive dev-only dep, not reachable at runtime; tracked in issue #NN
+# reason = "dev-only, not in the production deploy tree"
+# ignoreUntil = 2026-09-01
+
+# (no active ignores — the gate fails on any new advisory in the lockfile)

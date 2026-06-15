@@ -1,0 +1,42 @@
+import type { FastifyInstance } from 'fastify';
+import { identityRoutes } from './identity.js';
+import { recordRoutes } from './records.js';
+import { syncRoutes } from './sync.js';
+import { blobRoutes } from './blobs.js';
+import { schemaRoutes } from './schemas.js';
+import { shiftRoutes } from './shifts.js';
+import { userRoutes } from './users.js';
+import { rosterRoutes } from './roster.js';
+import { cosignRoutes } from './cosign.js';
+import { recoveryRoutes } from './recovery.js';
+import { orgSchemaRoutes } from './org-schema.js';
+import { categoryRoutes } from './categories.js';
+import { pushRoutes } from './push.js';
+import { notarizeRoutes } from './notarize.js';
+import { supervisorRoutes } from './supervisors.js';
+import { retentionRoutes } from './retention.js';
+import { materialRoutes } from './material.js';
+import { cirsRoutes } from './cirs.js';
+import { healthRoutes } from './health.js';
+
+export async function registerRoutes(app: FastifyInstance): Promise<void> {
+  await healthRoutes(app);
+  await identityRoutes(app);
+  await recordRoutes(app);
+  await syncRoutes(app);
+  await blobRoutes(app);
+  await schemaRoutes(app);
+  await shiftRoutes(app);
+  await userRoutes(app);
+  await rosterRoutes(app);
+  await cosignRoutes(app);
+  await recoveryRoutes(app);
+  await orgSchemaRoutes(app);
+  await categoryRoutes(app);
+  await pushRoutes(app);
+  await notarizeRoutes(app);
+  await supervisorRoutes(app);
+  await retentionRoutes(app);
+  await materialRoutes(app);
+  await cirsRoutes(app);
+}

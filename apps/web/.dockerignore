@@ -1,0 +1,11 @@
+# Note: the web image is built from the MONOREPO ROOT context, so the root
+# .dockerignore is what actually applies. Kept for clarity.
+node_modules
+build
+.svelte-kit
+dist
+.env
+.env.*
+!.env.example
+*.log
+coverage

@@ -1,0 +1,43 @@
+name: semgrep
+
+# SAST via Semgrep: community rule packs + Aidlog's own invariant rules
+# (.semgrep/aidlog.yml). Encodes architectural data-protection guarantees that
+# the dedicated linters and CodeQL do not express directly.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    # Skip the duplicate run when Dependabot opens PRs (no secrets available).
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep (community packs + custom Aidlog rules)
+        run: |
+          semgrep ci \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --config .semgrep/aidlog.yml \
+            --error
+        env:
+          # SEMGREP_APP_TOKEN is optional; without it `semgrep ci` runs fully
+          # local using the configs above and fails the job on any finding.
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}

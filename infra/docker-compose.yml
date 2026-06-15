@@ -1,0 +1,223 @@
+# Aidlog — full self-hosted stack.
+#
+#   caddy ──> web   (SvelteKit PWA, adapter-node)
+#         └─> api   (Fastify blind sync + blob store)
+#   api ──> postgres (append-only records, least-privilege app role)
+#       └─> minio    (opaque blob ciphertext)
+#
+# Bring it all up from the repo root with:
+#   docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build
+#
+# All secrets come from infra/.env (copy infra/.env.example -> infra/.env first).
+# Build context for the app images is the MONOREPO ROOT ("..") so the pnpm
+# workspace + lockfile are available.
+
+name: aidlog
+
+services:
+  # -------------------------------------------------------------------------
+  # Postgres — append-only record store. Init scripts create the aidlog_app
+  # role WITH a password; the migrate one-shot then applies the schema + grants.
+  # -------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Consumed by the init script to set the least-privilege role's password.
+      AIDLOG_APP_DB_PASSWORD: ${AIDLOG_APP_DB_PASSWORD}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      # Runs ONCE on first init (empty volume). See postgres-init/.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [internal]
+    # No published ports in production — only reachable on the internal network.
+    # The dev override (docker-compose.dev.yml) exposes 5432 for local tooling.
+
+  # -------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage for opaque blob ciphertext.
+  # -------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [internal]
+    # No published ports in production. The MinIO console (9001) and S3 API
+    # (9000) are exposed only via the dev override. See README hardening notes
+    # before ever exposing the console publicly.
+
+  # -------------------------------------------------------------------------
+  # minio-setup — one-shot: create the blob bucket from S3_BUCKET if missing.
+  # Exits 0 when done; not part of the long-running stack.
+  # -------------------------------------------------------------------------
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$S3_BUCKET"
+        # Blob ciphertext is opaque; keep the bucket private (no anonymous access).
+        mc anonymous set none "local/$$S3_BUCKET" || true
+        # --- OPTIONAL WORM HARDENING (S3 Object Lock) -------------------------
+        # The DATABASE archive is already append-only (records / notarization_anchors
+        # / audit_log: trigger + least-privilege INSERT/SELECT role — see migrations).
+        # For the OBJECT store you can OPTIONALLY make blob ciphertext immutable
+        # (Write-Once-Read-Many) so it cannot be overwritten/deleted before a
+        # retention period elapses. This is NOT enabled here because Object Lock must
+        # be set AT BUCKET CREATION (`mc mb --with-lock`) and changes lifecycle
+        # behaviour. To opt in, recreate the bucket with lock and set a default
+        # retention, e.g.:
+        #   mc mb --with-lock --ignore-existing "local/$$S3_BUCKET"
+        #   mc retention set --default COMPLIANCE "$${S3_OBJECT_LOCK_RETENTION_DAYS:-2555}d" "local/$$S3_BUCKET"
+        # COMPLIANCE mode prevents EVERYONE (incl. root) from shortening retention.
+        # See infra/README.md hardening checklist before enabling in production.
+        echo "[minio-setup] bucket '$$S3_BUCKET' ready."
+    networks: [internal]
+    restart: 'no'
+
+  # -------------------------------------------------------------------------
+  # migrate — one-shot: apply SQL migrations as the PRIVILEGED owner role.
+  # Creates the append-only trigger + GRANTs to aidlog_app. Exits 0 on success.
+  # -------------------------------------------------------------------------
+  migrate:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: aidlog-api:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Privileged connection (owner) — used ONLY for migrations, never the app.
+      MIGRATION_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command: ['node', 'dist/db/migrate.js']
+    networks: [internal]
+    restart: 'no'
+
+  # -------------------------------------------------------------------------
+  # api — Fastify blind sync + blob store. Connects as least-privilege role.
+  # -------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: aidlog-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      HOST: 0.0.0.0
+      # App connects as the LEAST-PRIVILEGE role (INSERT/SELECT on records only).
+      DATABASE_URL: postgres://aidlog_app:${AIDLOG_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Same-origin behind Caddy — restrict to your public origin.
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      SESSION_SECRET: ${SESSION_SECRET}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS}
+      CHALLENGE_TTL_SECONDS: ${CHALLENGE_TTL_SECONDS}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_FORCE_PATH_STYLE: 'true'
+      BLOB_TICKET_TTL_SECONDS: ${BLOB_TICKET_TTL_SECONDS}
+      BLOB_MAX_BYTES: ${BLOB_MAX_BYTES}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+      LOG_LEVEL: ${LOG_LEVEL}
+      # Web push (VAPID). Optional: leave blank in .env to disable push
+      # gracefully. Payloads are generic/content-free (never patient data).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    # Liveness probe: hit the unauthenticated /api/health endpoint via Node
+    # (the image's own runtime — no curl/wget assumed). Exposes no secrets.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('node:http').get('http://127.0.0.1:3000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks: [internal]
+    # No published ports — reached only through Caddy.
+
+  # -------------------------------------------------------------------------
+  # caddy — reverse proxy + static web host, automatic TLS, security headers.
+  # The SvelteKit PWA (adapter-static) is baked into this image and served from
+  # /srv; /api/* is reverse-proxied to the api service. No separate web service.
+  # -------------------------------------------------------------------------
+  caddy:
+    build:
+      context: ..
+      dockerfile: infra/Caddy.Dockerfile
+    image: aidlog-caddy:latest
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3
+    environment:
+      AIDLOG_DOMAIN: ${AIDLOG_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      # Live-edit the proxy config without rebuilding (overrides the baked copy).
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # certificates + ACME account (persist across restarts)
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_started
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pg-data:
+  minio-data:
+  caddy-data:
+  caddy-config:

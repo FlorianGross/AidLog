@@ -1,0 +1,31 @@
+# Development override — exposes Postgres + MinIO to the host for local tooling
+# (psql, drizzle-kit, the MinIO console, running api/web from your terminal).
+#
+# Usage:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml \
+#     --env-file infra/.env up -d
+#
+# WARNING: this publishes database/object-store ports on the host. NEVER use this
+# override on an internet-facing machine. It is for local development only.
+
+services:
+  postgres:
+    ports:
+      - '127.0.0.1:5432:5432' # bind to loopback only
+
+  minio:
+    ports:
+      - '127.0.0.1:9000:9000' # S3 API
+      - '127.0.0.1:9001:9001' # web console (http://127.0.0.1:9001)
+
+
+  # In dev you typically run api/web from your terminal with hot reload:
+  #   corepack pnpm --filter @aidlog/api dev
+  #   corepack pnpm --filter @aidlog/web dev
+  # ...pointing DATABASE_URL/S3_ENDPOINT at the loopback ports above. If you'd
+  # rather still build the containers, the base file already does that; this
+  # override only adds port publishing.
+
+  # Caddy with a local domain issues an internal cert; trust it or use the
+  # apps directly on their dev ports. Set AIDLOG_DOMAIN=localhost in .env for
+  # local TLS via Caddy's internal CA.

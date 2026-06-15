@@ -1,0 +1,17 @@
+# Trivy ignore file — Aidlog.
+#
+# Add CVE / misconfiguration IDs here ONLY with a justification and, ideally, an
+# expiry date. Every entry is a documented, reviewer-approved risk acceptance.
+# Empty by default: we want the gate to fail on anything real.
+#
+# Format examples:
+#   CVE-2024-XXXXX            # <reason> — accepted until YYYY-MM-DD, owner @handle
+#   AVD-DS-0002               # Trivy IaC check id (e.g. "image runs as root")
+#
+# Notes specific to this repo:
+# - Dockerfiles already drop to the unprivileged `node` user and pin a digest-able
+#   base; if Trivy's "no HEALTHCHECK"/"root user" config checks fire on the BUILD
+#   stages (which are intentionally not the runtime stage) and prove noisy, pin
+#   the precise AVD id here with a comment rather than lowering the global severity.
+#
+# (no active ignores)

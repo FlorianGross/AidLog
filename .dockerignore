@@ -1,0 +1,48 @@
+# Build context is the monorepo root for both apps/api and apps/web images.
+# Keep the context small and never ship host node_modules, build output, or
+# secrets into the image.
+
+# Dependencies (re-installed inside the image from the lockfile)
+**/node_modules
+.pnpm-store
+
+# Build output (rebuilt inside the image)
+**/dist
+**/build
+**/.svelte-kit
+**/*.tsbuildinfo
+
+# Env & secrets — must never enter an image layer
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.p12
+secrets/
+keys/
+
+# Local data / volumes
+data/
+minio-data/
+pg-data/
+**/*.sqlite
+**/*.sqlite3
+
+# Infra (not needed inside app images; would bust the cache on every infra edit)
+infra/
+
+# Git, CI, docs, editor
+.git
+.github
+.idea
+.vscode
+docs/
+**/*.log
+logs/
+coverage/
+.nyc_output/
+
+# OS noise
+.DS_Store
+Thumbs.db

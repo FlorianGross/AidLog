@@ -1,0 +1,135 @@
+# Aidlog custom Semgrep rules — encode the data-protection invariants that the
+# generic packs (p/javascript, p/typescript, p/secrets, p/owasp-top-ten) do not.
+#
+# These complement (do not replace) scripts/crypto-lint.mjs and privacy-lint.mjs:
+# Semgrep gives us AST-aware matching for the React/Svelte/Express-style patterns,
+# while the bespoke linters enforce the import-boundary and pragma allowlisting.
+
+rules:
+  # --------------------------------------------------------------------------
+  # INVARIANT (ARCHITECTURE.md §8): only packages/crypto-core may import a
+  # crypto-primitive library. api/web must call @aidlog/crypto-core instead.
+  # --------------------------------------------------------------------------
+  - id: aidlog-no-crypto-primitive-outside-core
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Crypto-primitive library imported outside packages/crypto-core.
+      Only @aidlog/crypto-core may import libsodium/tweetnacl/crypto-js/bcrypt/
+      node-forge. Move the operation into crypto-core (ARCHITECTURE.md §8).
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe: 'CWE-310: Cryptographic Issues'
+    paths:
+      exclude:
+        - packages/crypto-core/
+    pattern-either:
+      - pattern: import $X from 'libsodium-wrappers-sumo'
+      - pattern: import $X from 'libsodium-wrappers'
+      - pattern: import $X from 'libsodium'
+      - pattern: import $X from 'tweetnacl'
+      - pattern: import $X from 'crypto-js'
+      - pattern: import $X from 'bcrypt'
+      - pattern: import $X from 'bcryptjs'
+      - pattern: import $X from 'node-forge'
+      - pattern: require('libsodium-wrappers-sumo')
+      - pattern: require('tweetnacl')
+      - pattern: require('crypto-js')
+
+  # --------------------------------------------------------------------------
+  # INVARIANT: the blind server must never return plaintext/decrypted content.
+  # Flag sending obviously-sensitive identifiers in an API response body.
+  # --------------------------------------------------------------------------
+  - id: aidlog-no-plaintext-in-api-response
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Possible plaintext/secret sent in an API response. The server is a BLIND
+      store: never send back decrypted payloads, DEKs, passwords, or unwrapped
+      secret keys. Send ciphertext + routing metadata only.
+    metadata:
+      category: security
+      confidence: MEDIUM
+      cwe: 'CWE-200: Exposure of Sensitive Information'
+    paths:
+      include:
+        - apps/api/
+    pattern-either:
+      - pattern: '$RES.send({..., plaintext: $X, ...})'
+      - pattern: '$RES.send({..., dek: $X, ...})'
+      - pattern: '$RES.send({..., password: $X, ...})'
+      - pattern: '$RES.send({..., secretKey: $X, ...})'
+      - pattern: '$REPLY.send({..., plaintext: $X, ...})'
+      - pattern: '$REPLY.send({..., dek: $X, ...})'
+      - pattern: '$REPLY.send({..., password: $X, ...})'
+      - pattern: '$REPLY.send({..., secretKey: $X, ...})'
+      - pattern: 'res.json({..., dek: $X, ...})'
+      - pattern: 'res.json({..., password: $X, ...})'
+
+  # --------------------------------------------------------------------------
+  # INVARIANT: no unsanitised HTML injection sinks in the client (XSS).
+  # Svelte {@html ...} and React dangerouslySetInnerHTML with non-literal input.
+  # --------------------------------------------------------------------------
+  - id: aidlog-no-react-dangerously-set-inner-html
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      dangerouslySetInnerHTML renders raw HTML and is an XSS sink. Decrypted
+      protocol data is attacker-influenced; never inject it as HTML. Render as
+      text, or sanitise with a vetted sanitiser if HTML is truly required.
+    metadata:
+      category: security
+      confidence: HIGH
+      owasp: 'A03:2021 - Injection'
+      cwe: 'CWE-79: Cross-site Scripting'
+    paths:
+      include:
+        - apps/web/
+    pattern: 'dangerouslySetInnerHTML={...}'
+
+  - id: aidlog-no-svelte-html-block
+    # Svelte files aren't parsed by Semgrep's TS engine; match the raw {@html}
+    # sink generically so a reviewer is forced to justify it.
+    languages: [generic]
+    severity: WARNING
+    message: >-
+      Svelte {@html ...} renders raw HTML (XSS sink). Decrypted protocol content
+      is attacker-influenced — do not pass it to {@html}. Use plain text binding
+      or sanitise first. If unavoidable, justify in review.
+    metadata:
+      category: security
+      confidence: MEDIUM
+      owasp: 'A03:2021 - Injection'
+      cwe: 'CWE-79: Cross-site Scripting'
+    paths:
+      include:
+        - 'apps/web/**/*.svelte'
+    pattern: '{@html $X}'
+
+  # --------------------------------------------------------------------------
+  # INVARIANT (ARCHITECTURE.md §7): session cookies, if ever used, must be
+  # TLS-only and locked down. Flag cookies missing secure/httpOnly/sameSite.
+  # --------------------------------------------------------------------------
+  - id: aidlog-insecure-cookie-flags
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Cookie set without secure TLS-only flags. Require secure:true,
+      httpOnly:true and sameSite for any cookie (ARCHITECTURE.md §7 — TLS
+      everywhere). Health data deployment: no plaintext-transport cookies.
+    metadata:
+      category: security
+      confidence: MEDIUM
+      owasp: 'A05:2021 - Security Misconfiguration'
+      cwe: 'CWE-614: Sensitive Cookie Without Secure Attribute'
+    paths:
+      include:
+        - apps/api/
+    pattern-either:
+      - patterns:
+          - pattern: '$REPLY.setCookie($NAME, $VAL, {...})'
+          - pattern-not: '$REPLY.setCookie($NAME, $VAL, {..., secure: true, ...})'
+      - patterns:
+          - pattern: 'res.cookie($NAME, $VAL, {...})'
+          - pattern-not: 'res.cookie($NAME, $VAL, {..., secure: true, ...})'

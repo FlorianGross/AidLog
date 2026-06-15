@@ -1,0 +1,3 @@
+# Aidlog is a private, self-hosted field tool — discourage indexing.
+User-agent: *
+Disallow: /

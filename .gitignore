@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.svelte-kit/
+*.tsbuildinfo
+
+# Env & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+keys/
+
+# Data / storage (self-hosted volumes)
+data/
+minio-data/
+pg-data/
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Playwright (E2E)
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Misc
+*.local
+tmp/

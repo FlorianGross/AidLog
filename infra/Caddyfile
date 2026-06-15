@@ -1,0 +1,72 @@
+# Aidlog reverse proxy — automatic HTTPS (Let's Encrypt) + security headers.
+#
+# Routing:
+#   /api/*  -> api service (Fastify, :3000)
+#   /*      -> static SvelteKit PWA (adapter-static) served from /srv in-image
+#
+# The site address and ACME email come from the environment (see infra/.env):
+#   AIDLOG_DOMAIN  e.g. aidlog.example.org
+#   ACME_EMAIL     e.g. ops@example.org
+#
+# Caddy obtains and renews certificates automatically. For purely local testing
+# set AIDLOG_DOMAIN=localhost (Caddy issues an internal self-signed cert).
+
+{
+	email {$ACME_EMAIL}
+	# Uncomment to use the Let's Encrypt STAGING endpoint while testing so you
+	# don't hit production rate limits:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$AIDLOG_DOMAIN} {
+
+	# --- Security headers -------------------------------------------------
+	header {
+		# HSTS: force HTTPS for 2 years incl. subdomains. Only safe once you are
+		# committed to HTTPS for this domain (it is sticky in browsers).
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		# Lock down powerful browser features the app does not use.
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+
+		# Content-Security-Policy is intentionally NOT set here. It is owned by
+		# SvelteKit (apps/web/svelte.config.js -> kit.csp, mode: 'hash'), which
+		# injects a <meta> CSP carrying the per-build SHA-256 hash of its inline
+		# bootstrap <script>. A static header here could not track that hash and
+		# would block the app from starting. Clickjacking is covered by
+		# X-Frame-Options above; the SvelteKit CSP covers script/style/connect/etc.
+
+		# Don't advertise the server software.
+		-Server
+	}
+
+	# --- Compression ------------------------------------------------------
+	encode zstd gzip
+
+	# --- API: everything under /api goes to the Fastify service -----------
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:3000
+	}
+
+	# --- Web: static SvelteKit PWA for everything else --------------------
+	# adapter-static emits a client-rendered SPA; serve files directly and fall
+	# back to the SPA shell (200.html) for client-side routes that have no file.
+	handle {
+		root * /srv
+		try_files {path} /200.html
+		file_server
+	}
+
+	# Access logs to stdout (captured by Docker). For GDPR, see README hardening
+	# checklist: keep retention short and avoid logging request bodies (we don't).
+	log {
+		output stdout
+		format console
+	}
+}

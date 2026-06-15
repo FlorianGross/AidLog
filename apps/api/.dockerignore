@@ -1,0 +1,10 @@
+# Note: the api image is built from the MONOREPO ROOT context, so the root
+# .dockerignore is what actually applies. This file is kept for clarity and for
+# anyone who builds with `apps/api` as the context.
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+coverage

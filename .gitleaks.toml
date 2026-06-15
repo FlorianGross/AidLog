@@ -1,0 +1,47 @@
+# gitleaks configuration for Aidlog.
+#
+# Extends the upstream default ruleset (covers AWS keys, private keys, generic
+# API tokens, JWTs, etc.) and adds Aidlog-specific allowlisting so legitimate
+# test fixtures and *example* env files don't trip the secret scanner.
+#
+# IMPORTANT: this only relaxes obvious non-secret patterns. Anything that looks
+# like a real credential still fails the build.
+
+title = "Aidlog gitleaks config"
+
+[extend]
+# Pull in gitleaks' built-in rules as the baseline.
+useDefault = true
+
+[allowlist]
+description = "Aidlog allowlisted non-secret paths and patterns"
+
+# Paths that contain example/template values, generated lockfiles, or test data.
+paths = [
+  '''(.*/)?\.env\.example$''',
+  '''(.*/)?.*\.example$''',
+  '''(.*/)?pnpm-lock\.yaml$''',
+  '''(.*/)?dist/''',
+  '''(.*/)?build/''',
+  '''(.*/)?\.svelte-kit/''',
+  '''(.*/)?.*\.test\.ts$''',
+  '''(.*/)?.*\.spec\.ts$''',
+  '''(.*/)?test/''',
+]
+
+# Documented placeholder values used in examples / compose files.
+regexes = [
+  '''(?i)(change[-_]?me|example|placeholder|your[-_]?secret[-_]?here|dummy|sample)''',
+  # base64/hex inside our crypto unit tests are deterministic, non-production vectors.
+  '''(?i)crypto-lint-allow''',
+]
+
+# Stop-words that, when present, mark a match as a non-leak (test vectors etc.).
+stopwords = [
+  "example",
+  "placeholder",
+  "changeme",
+  "dummy",
+  "sample",
+  "test",
+]

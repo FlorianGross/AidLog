@@ -1,0 +1,21 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "moduleResolution": "bundler"
+  },
+  // The service worker (src/sw.ts) runs in the WebWorker global scope, not the
+  // DOM. It is compiled in a SEPARATE build by @vite-pwa/sveltekit
+  // (injectManifest) with its own service-worker lib + tsconfig, so the
+  // app-level DOM-typed program must not type-check it (the global `self`,
+  // PushEvent, NotificationEvent etc. would otherwise clash with the DOM lib).
+  "exclude": ["src/service-worker.ts"]
+}

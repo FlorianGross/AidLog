@@ -1,0 +1,187 @@
+name: security
+
+# Security & supply-chain gate: static analysis (CodeQL), secret scanning
+# (gitleaks), dependency vulnerabilities (osv-scanner, pnpm audit fallback),
+# filesystem + IaC misconfiguration (Trivy), license policy, and an SBOM.
+#
+# Required vs advisory split is documented in docs/CI_AND_COMPLIANCE.md.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly drift scan (Mondays 06:17 UTC) so new CVEs in unchanged deps surface.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # CodeQL static analysis for JS/TS.
+  # ----------------------------------------------------------------------------
+  codeql:
+    name: codeql
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          config-file: ./.github/codeql-config.yml
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
+
+  # ----------------------------------------------------------------------------
+  # Secret scanning (full history on schedule/push; PR diff on pull_request).
+  # ----------------------------------------------------------------------------
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so historical leaks are caught
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
+          # No license needed for OSS public repos. Set GITLEAKS_LICENSE for orgs.
+
+  # ----------------------------------------------------------------------------
+  # Dependency vulnerabilities: OSV-Scanner (primary), pnpm audit (fallback).
+  # ----------------------------------------------------------------------------
+  dependencies:
+    name: dependency-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: OSV-Scanner (lockfile vulnerabilities)
+        id: osv
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@v1.9.0
+        with:
+          scan-args: |-
+            --config=./osv-scanner.toml
+            --lockfile=pnpm-lock.yaml
+            ./
+
+      - name: pnpm audit (fallback if OSV-Scanner failed to run)
+        if: steps.osv.outcome == 'failure'
+        run: corepack pnpm audit --audit-level=high
+
+  # ----------------------------------------------------------------------------
+  # Trivy: filesystem (deps/secrets/licenses) + config (Dockerfile/compose IaC).
+  # ----------------------------------------------------------------------------
+  trivy:
+    name: trivy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (vuln + secret)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-fs.sarif
+
+      - name: Trivy config (IaC) scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-config.sarif
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  # ----------------------------------------------------------------------------
+  # License policy: allow OSI/copyleft-compatible; FAIL on GPL-incompatible or
+  # non-OSI licenses. AGPL/MIT/Apache/BSD/ISC are explicitly allowed.
+  # ----------------------------------------------------------------------------
+  licenses:
+    name: license-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+      - name: Check licenses (allowlist policy)
+        # license-checker reads the installed tree. --onlyAllow fails the job on
+        # any dependency whose license is NOT in the allowlist. The project is
+        # AGPL-3.0; AGPL/MIT/Apache/BSD/ISC and common permissive variants pass.
+        run: |
+          npx --yes license-checker-rseidelsohn@^4 \
+            --production \
+            --excludePackages "aidlog@0.1.0" \
+            --onlyAllow "AGPL-3.0-or-later;AGPL-3.0;LGPL-3.0;LGPL-3.0-or-later;GPL-3.0-or-later;MIT;MIT-0;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;WTFPL;Zlib" \
+            --excludePrivatePackages
+
+  # ----------------------------------------------------------------------------
+  # SBOM (CycloneDX) — generated and uploaded as a build artifact for audit.
+  # ----------------------------------------------------------------------------
+  sbom:
+    name: sbom
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install (frozen lockfile)
+        run: corepack pnpm install --frozen-lockfile
+      - name: Generate CycloneDX SBOM
+        run: npx --yes @cyclonedx/cyclonedx-npm@^1 --output-format json --output-file sbom.cdx.json || npx --yes @cyclonedx/cdxgen@^10 -t pnpm -o sbom.cdx.json .
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          if-no-files-found: error

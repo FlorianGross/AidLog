@@ -1,0 +1,31 @@
+# CODEOWNERS — mandatory review for security-critical surfaces.
+#
+# GitHub requires a matching review from a listed owner before merge when
+# "Require review from Code Owners" is enabled in branch protection.
+#
+# Replace @aidlog/security-maintainers with your real team/handle(s).
+
+# Default owner for everything (fallback).
+*                               @aidlog/maintainers
+
+# The ONLY package allowed to touch crypto primitives — highest scrutiny.
+/packages/crypto-core/**         @aidlog/security-maintainers
+
+# The shared wire contract: changing it changes the zero-knowledge data model.
+/packages/contracts/**           @aidlog/security-maintainers
+
+# Compliance linters: weakening these weakens every gate.
+/scripts/crypto-lint.mjs         @aidlog/security-maintainers
+/scripts/privacy-lint.mjs        @aidlog/security-maintainers
+/scripts/*-lint.mjs              @aidlog/security-maintainers
+
+# Server auth & redaction (session tokens, log scrubbing).
+/apps/api/src/auth.ts            @aidlog/security-maintainers
+/apps/api/src/redact.ts          @aidlog/security-maintainers
+
+# All CI / security configuration and policy.
+/.github/**                      @aidlog/security-maintainers
+/.semgrep/**                     @aidlog/security-maintainers
+/.gitleaks.toml                  @aidlog/security-maintainers
+/.trivyignore                    @aidlog/security-maintainers
+/osv-scanner.toml                @aidlog/security-maintainers

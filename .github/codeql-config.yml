@@ -1,0 +1,22 @@
+name: aidlog-codeql
+
+# CodeQL configuration for the javascript-typescript analysis.
+# We use the security-and-quality query suite for the strongest default set.
+queries:
+  - uses: security-and-quality
+
+# Don't waste analysis time on build artifacts, generated code, or vendored deps.
+paths-ignore:
+  - '**/dist'
+  - '**/build'
+  - '**/.svelte-kit'
+  - '**/node_modules'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - 'apps/web/.svelte-kit'
+
+# Source we DO care about (everything not ignored above).
+paths:
+  - 'apps'
+  - 'packages'
+  - 'scripts'

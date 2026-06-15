@@ -1,0 +1,30 @@
+{
+  "name": "aidlog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open, end-to-end-encrypted documentation for emergency medical / first-aid deployments. Self-hosted, zero-knowledge, vendor-neutral.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "security:crypto-lint": "node scripts/crypto-lint.mjs",
+    "security:privacy-lint": "node scripts/privacy-lint.mjs",
+    "compliance:check": "node scripts/crypto-lint.mjs && node scripts/privacy-lint.mjs",
+    "dev": "echo \"Run individual apps: pnpm --filter @aidlog/api dev / pnpm --filter @aidlog/web dev\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "prettier-plugin-svelte": "^3.3.3",
+    "typescript": "^5.6.2"
+  }
+}

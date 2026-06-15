@@ -1,0 +1,69 @@
+version: 2
+
+# Weekly dependency updates for npm (pnpm workspaces), GitHub Actions, and Docker.
+# Security updates land as soon as advisories are published; version bumps are
+# grouped weekly to keep PR noise low.
+updates:
+  # --- npm / pnpm workspace -------------------------------------------------
+  # The npm ecosystem covers the root manifest and is workspace-aware via the
+  # root pnpm-lock.yaml. directories: ['/'] keeps a single lockfile resolution.
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - dependencies
+      - npm
+    groups:
+      # Batch low-risk dev/minor+patch bumps into one PR.
+      dev-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Crypto core is security-critical: review libsodium bumps deliberately,
+      # never auto-merge a transitive primitive change.
+      - dependency-name: libsodium-wrappers-sumo
+        update-types: [version-update:semver-major]
+
+  # --- GitHub Actions -------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - '*'
+
+  # --- Docker (api + web images) -------------------------------------------
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    labels:
+      - dependencies
+      - docker
+
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    labels:
+      - dependencies
+      - docker

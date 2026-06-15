@@ -1,0 +1,308 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens — flat, clinical, medical-teal accent, light + dark.
+ *
+ * Colors are stored as space-separated RGB triplets so Tailwind utilities get
+ * real alpha support (`bg-surface-1/80`). Light is the default; the system dark
+ * preference applies with NO JavaScript (no flash). A manual choice sets
+ * `data-theme="light|dark"` on <html> (see src/lib/theme.ts) and overrides.
+ */
+@layer base {
+  :root {
+    --surface: 247 248 250; /* page background */
+    --surface-1: 255 255 255; /* cards / inputs */
+    --surface-2: 241 243 246; /* metric tiles / subtle fills */
+    --surface-3: 232 236 241; /* hover */
+    --text: 15 23 42;
+    --text-muted: 71 85 105;
+    --text-subtle: 90 102 120; /* WCAG AA: ~4.6:1 on the light surface */
+    --line: 226 232 240;
+    --line-strong: 203 213 225;
+
+    --brand: 13 148 136; /* teal-600 */
+    --brand-strong: 15 118 110; /* teal-700 */
+    --brand-fg: 255 255 255; /* text on brand */
+    --brand-soft: 224 247 242; /* soft brand fill */
+    --brand-soft-fg: 15 118 110; /* text on soft fill */
+
+    --danger: 220 38 38;
+    --danger-soft: 254 226 226;
+    --danger-fg: 153 27 27;
+    --warning: 202 110 8;
+    --warning-soft: 254 243 199;
+    --warning-fg: 146 64 14;
+    --ok: 22 163 74;
+    --ok-soft: 220 252 231;
+    --ok-fg: 22 101 52;
+
+    --ring: 20 184 166; /* teal-500 */
+    color-scheme: light;
+  }
+
+  /* dark token values, reused by both system-pref and explicit choice */
+  :root[data-theme='dark'],
+  :root[data-theme='dark'] * {
+    /* (attribute carries the values below via the shared block) */
+  }
+
+  :root[data-theme='dark'] {
+    --surface: 11 18 32;
+    --surface-1: 17 25 40;
+    --surface-2: 25 34 51;
+    --surface-3: 34 44 64;
+    --text: 226 232 240;
+    --text-muted: 148 163 184;
+    --text-subtle: 100 116 139;
+    --line: 38 49 70;
+    --line-strong: 51 65 90;
+
+    --brand: 45 212 191; /* teal-400 */
+    --brand-strong: 94 234 212; /* teal-300 */
+    --brand-fg: 4 47 46;
+    --brand-soft: 8 51 41;
+    --brand-soft-fg: 153 246 228;
+
+    --danger: 248 113 113;
+    --danger-soft: 60 26 26;
+    --danger-fg: 252 165 165;
+    --warning: 251 191 36;
+    --warning-soft: 60 46 16;
+    --warning-fg: 253 224 130;
+    --ok: 74 222 128;
+    --ok-soft: 18 50 30;
+    --ok-fg: 134 239 172;
+
+    --ring: 45 212 191;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --surface: 11 18 32;
+      --surface-1: 17 25 40;
+      --surface-2: 25 34 51;
+      --surface-3: 34 44 64;
+      --text: 226 232 240;
+      --text-muted: 148 163 184;
+      --text-subtle: 100 116 139;
+      --line: 38 49 70;
+      --line-strong: 51 65 90;
+
+      --brand: 45 212 191;
+      --brand-strong: 94 234 212;
+      --brand-fg: 4 47 46;
+      --brand-soft: 8 51 41;
+      --brand-soft-fg: 153 246 228;
+
+      --danger: 248 113 113;
+      --danger-soft: 60 26 26;
+      --danger-fg: 252 165 165;
+      --warning: 251 191 36;
+      --warning-soft: 60 46 16;
+      --warning-fg: 253 224 130;
+      --ok: 74 222 128;
+      --ok-soft: 18 50 30;
+      --ok-fg: 134 239 172;
+
+      --ring: 45 212 191;
+      color-scheme: dark;
+    }
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+  }
+
+  body {
+    @apply bg-surface text-fg antialiased;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-surface;
+  }
+}
+
+@layer components {
+  /* Buttons — glove-friendly, flat. */
+  .btn {
+    @apply inline-flex min-h-touch items-center justify-center gap-2 rounded-xl px-5 text-base
+      font-medium transition-colors active:scale-[0.98] disabled:cursor-not-allowed
+      disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-brand-fg hover:bg-brand-strong;
+  }
+  .btn-secondary {
+    @apply btn border border-line-strong bg-surface-1 text-fg hover:bg-surface-2;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:bg-surface-2 hover:text-fg;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-2xl border border-line bg-surface-1 p-5;
+  }
+  .tile {
+    @apply rounded-xl bg-surface-2 p-4;
+  }
+
+  /* Form controls */
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-muted;
+  }
+  .field-input {
+    @apply min-h-touch w-full rounded-xl border border-line-strong bg-surface-1 px-4 text-base
+      text-fg placeholder:text-subtle focus:border-brand focus:outline-none;
+  }
+  .field-error {
+    @apply mt-1 text-sm text-danger;
+  }
+
+  /* Badges / pills */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-brand {
+    @apply badge bg-brand-soft text-brand-soft-fg;
+  }
+  .badge-ok {
+    @apply badge bg-ok-soft text-ok-fg;
+  }
+  .badge-warning {
+    @apply badge bg-warning-soft text-warning-fg;
+  }
+  .badge-danger {
+    @apply badge bg-danger-soft text-danger-fg;
+  }
+  .badge-muted {
+    @apply badge bg-surface-3 text-muted;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Accessibility: honour prefers-reduced-motion.
+ *
+ * Users who request reduced motion (vestibular disorders, motion sensitivity)
+ * get animations/transitions effectively neutralised. We keep a ~0.01ms
+ * duration rather than 0 so animationend/transitionend events still fire and
+ * JS that relies on them doesn't hang. Appended last so it wins the cascade.
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Right-to-left (Arabic). The active locale sets `<html dir="rtl">` (see
+ * +layout.svelte). Tailwind utilities are physical (left/right), so we mirror
+ * the few asymmetries that matter with logical/explicit overrides under
+ * [dir='rtl']. Pragmatic, not exhaustive — fixes the visible cases.
+ * ------------------------------------------------------------------------- */
+[dir='rtl'] body {
+  text-align: right;
+}
+
+/* Drawer/header are positioned with physical left utilities. In RTL the
+ * off-canvas drawer must live on the RIGHT and slide in from the right. */
+[dir='rtl'] nav.fixed.inset-y-0.left-0 {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid rgb(var(--line));
+}
+/* The mobile slide-in transform is `-translate-x-full` (off to the left);
+ * flip it so a closed drawer hides to the right in RTL. */
+[dir='rtl'] nav.-translate-x-full {
+  --tw-translate-x: 100%;
+  transform: translateX(var(--tw-translate-x));
+}
+
+/* Directional chevrons (e.g. the desktop drawer collapse toggle) point the
+ * wrong way in RTL; flip horizontally. Components opt in with `.rtl-flip`. */
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Form fields and labels read right-aligned in RTL. */
+[dir='rtl'] .field-input,
+[dir='rtl'] .field-label {
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------
+ * Handschuh-/Großschrift-Modus (glove / large-font display mode).
+ *
+ * setDisplayMode('glove') sets `<html data-display="glove">` (see
+ * src/lib/display.ts). We scale the root font-size up (so all rem-based type,
+ * spacing and the 3rem touch targets grow proportionally) and additionally
+ * enlarge the key interactive controls and their tap spacing, so the app is
+ * usable with gloves or for low-vision users. Normal mode is untouched.
+ * ------------------------------------------------------------------------- */
+:root[data-display='glove'] {
+  font-size: 125%; /* 16px → 20px base; rem-based sizing grows with it */
+}
+
+/* Bump explicit touch minimums beyond the rem-scaled 3rem for comfort. */
+:root[data-display='glove'] .btn,
+:root[data-display='glove'] .field-input,
+:root[data-display='glove'] .min-h-touch {
+  min-height: 3.5rem;
+}
+
+/* Larger control text and more generous tap spacing in lists/menus. */
+:root[data-display='glove'] .btn {
+  font-size: 1.0625rem;
+}
+:root[data-display='glove'] nav ul.space-y-1 > li + li {
+  margin-top: 0.5rem;
+}
+
+/* Checkboxes/switches are small tap targets — enlarge them in glove mode. */
+:root[data-display='glove'] input[type='checkbox'],
+:root[data-display='glove'] input[type='radio'] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * A11y: make the keyboard focus ring unmistakable and never hide focus.
+ * (Augments the base :focus-visible ring above.)
+ * ------------------------------------------------------------------------- */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgb(var(--ring));
+  outline-offset: 2px;
+}
