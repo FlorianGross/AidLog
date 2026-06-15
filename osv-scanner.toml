@@ -26,3 +26,15 @@ id = "GHSA-gv7w-rqvm-qjhr"
 # any of those parents, so a forced override would risk breaking vite's build.
 reason = "Deno-specific (we use Node/pnpm); dev-only transitive, not in the production deploy tree"
 ignoreUntil = 2026-12-15
+
+[[IgnoredVulns]]
+id = "GHSA-fx2h-pf6j-xcff"
+# vite `server.fs.deny` bypass on Windows alternate paths — affects only the
+# vite DEV/preview server's file-serving guard. CI runs `vite build` (no server)
+# and production serves static files via Caddy (vite never runs). It reaches the
+# tree only through vitest's dev tooling. The patch is vite >=6.4.3, but the app
+# is pinned to vite ^5 for @sveltejs/vite-plugin-svelte 4 + libsodium build
+# compatibility (vite 6/8 mangle the emscripten bundle — see the vite-8 revert).
+# Revisit when migrating to vite 6 + vite-plugin-svelte 5.
+reason = "vite dev-server-only; not in CI/prod attack surface; patch (vite 6.4.3) breaks the pinned vite-5 toolchain"
+ignoreUntil = 2026-12-15

@@ -20,6 +20,14 @@
 # tree. Accepted until 2026-12-15 — mirrors osv-scanner.toml + pnpm auditConfig.
 GHSA-gv7w-rqvm-qjhr
 
+# vite `server.fs.deny` bypass on Windows alternate paths — vite DEV/preview
+# server only. CI runs `vite build`; production serves static files via Caddy
+# (vite never runs). Reaches the tree via vitest dev tooling only. Patch is vite
+# >=6.4.3, incompatible with the vite-5-pinned toolchain (vite-plugin-svelte 4 +
+# the libsodium emscripten build — see the vite-8 revert). Accepted until
+# 2026-12-15 — mirrors osv-scanner.toml + pnpm auditConfig.
+GHSA-fx2h-pf6j-xcff
+
 # NOTE: Trivy's plain .trivyignore reliably suppresses VULN ids (CVE/GHSA) but
 # not misconfiguration/IaC check ids (e.g. AVD-DS-0002). The one HIGH IaC
 # finding — Caddy running as root in infra/Caddy.Dockerfile — is handled by
