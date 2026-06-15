@@ -32,7 +32,11 @@ export interface Connectivity {
 }
 
 const connectivityStore = writable<Connectivity>({
-  online: browser ? navigator.onLine : true,
+  // `navigator` is guarded explicitly: this runs at module load, and test files
+  // that import the store via the `browser` resolve condition run in a Node env
+  // (libsodium's Uint8Array realm) where `browser` is truthy but `navigator` is
+  // undefined — accessing it unguarded crashes the import.
+  online: browser && typeof navigator !== 'undefined' ? navigator.onLine : true,
   pending: 0,
   syncing: false,
   lastSyncAt: null,
