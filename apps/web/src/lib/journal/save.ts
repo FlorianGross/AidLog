@@ -59,6 +59,10 @@ export async function saveJournalEntry({
   const { record } = await finalizeDraft({
     draft: {
       deploymentId,
+      // A journal entry is NOT a patient protocol → NO protocolId. The empty
+      // string makes finalizeDraft skip the PROTOCOL_ID_KEY stamp, so journal
+      // entries stay in the Tagebuch and never appear in the protocol list.
+      protocolId: '',
       schemaId: EVENT_JOURNAL_SCHEMA_ID,
       schemaVersion: EVENT_JOURNAL_SCHEMA_VERSION,
       values: buildJournalPayload(input),

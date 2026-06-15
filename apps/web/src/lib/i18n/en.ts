@@ -471,6 +471,46 @@ export const en = {
     signatureLine: 'Date, signature operations lead',
   },
 
+  protocols: {
+    fallbackLabel: 'Protocol',
+  },
+
+  dashboard: {
+    createHeading: 'Create new',
+    createEvent: 'Create event / operation',
+    createEventHint: 'Multiple patient protocols, journal, materials and statistics.',
+    createSingle: 'Single protocol (no event)',
+    createSingleHint:
+      'Capture a single patient protocol directly — without the operation overhead.',
+    createSingleAction: 'Start single protocol',
+    singleTitle: 'Single protocol',
+    singleBadge: 'Single',
+  },
+
+  hub: {
+    protocolsTitle: 'Patient protocols',
+    protocolsSubtitle: 'Protocols and quick contacts of this operation.',
+    newProtocol: 'New protocol',
+    empty: 'No protocols yet. Create a new one or use quick capture.',
+    overviewNav: 'Operation overview',
+    overview: 'Overview',
+    wachbericht: 'Watch report',
+    draftBadge: 'Draft',
+    finalBadge: 'finalized',
+    quickBadge: 'Quick',
+    statusOpen: 'open',
+    statusClosed: 'closed',
+    openProtocol: 'Open protocol',
+  },
+  capture: {
+    title: 'Protocol',
+    savedIndicator: 'Saved automatically',
+    doneTitle: 'Documentation finalized',
+    doneSubtitle: 'The protocol is finalized and signed.',
+    backToHub: 'To operation overview',
+    backToDashboard: 'To dashboard',
+  },
+
   // --- Display + language settings ----------------------------------------
   settings: {
     title: 'Display & language',

@@ -18,6 +18,7 @@ import { setOwnQualification } from '../qualifications';
 import { pendingCount, flush } from './outbox';
 import { pull } from './sync';
 import { getDB, type DeploymentMeta } from './db';
+import { newProtocolId } from '../protocols/marker';
 import { api } from '../api';
 
 // --- connectivity -----------------------------------------------------------
@@ -172,6 +173,7 @@ export async function createDeployment(
   title: string,
   categoryId?: string,
   training?: boolean,
+  kind?: 'event' | 'single',
 ): Promise<DeploymentMeta> {
   const db = await getDB();
   const meta: DeploymentMeta = {
@@ -182,6 +184,7 @@ export async function createDeployment(
     recordCount: 0,
     ...(categoryId ? { categoryId } : {}),
     ...(training ? { training: true } : {}),
+    ...(kind ? { kind } : {}),
   };
   await db.put('deployments', meta);
   await loadDeployments();
@@ -191,6 +194,22 @@ export async function createDeployment(
 export async function getDeployment(id: string): Promise<DeploymentMeta | undefined> {
   const db = await getDB();
   return db.get('deployments', id);
+}
+
+/**
+ * Create a `kind:'single'` deployment that holds exactly ONE standalone patient
+ * protocol (Einzelprotokoll ohne Veranstaltung) and mint that protocol's id, so
+ * the caller can route straight to its capture page. The deployment still uses
+ * the normal record chain + draft model — only the UI is decluttered (the hub is
+ * skipped for single deployments). Returns both ids.
+ */
+export async function startSingleProtocol(
+  title: string,
+  categoryId?: string,
+  training?: boolean,
+): Promise<{ deploymentId: string; protocolId: string }> {
+  const meta = await createDeployment(title, categoryId, training, 'single');
+  return { deploymentId: meta.deploymentId, protocolId: newProtocolId() };
 }
 
 /**
