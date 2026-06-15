@@ -19,3 +19,9 @@
 # transitive (vite/vitest/tsx/drizzle-kit), excluded from the production deploy
 # tree. Accepted until 2026-12-15 — mirrors osv-scanner.toml + pnpm auditConfig.
 GHSA-gv7w-rqvm-qjhr
+
+# NOTE: Trivy's plain .trivyignore reliably suppresses VULN ids (CVE/GHSA) but
+# not misconfiguration/IaC check ids (e.g. AVD-DS-0002). The one HIGH IaC
+# finding — Caddy running as root in infra/Caddy.Dockerfile — is handled by
+# making the Trivy *config* scan advisory in .github/workflows/security.yml
+# (the *fs* vuln/secret scan stays a hard gate). See the comment there.

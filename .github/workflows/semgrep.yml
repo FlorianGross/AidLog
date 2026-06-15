@@ -35,9 +35,10 @@ jobs:
             --config p/typescript \
             --config p/secrets \
             --config p/owasp-top-ten \
-            --config .semgrep/aidlog.yml \
-            --error
+            --config .semgrep/aidlog.yml
         env:
           # SEMGREP_APP_TOKEN is optional; without it `semgrep ci` runs fully
-          # local using the configs above and fails the job on any finding.
+          # local using the configs above. `semgrep ci` already exits non-zero
+          # on blocking findings, so no `--error` flag is needed (and `--error`
+          # is not a valid option for the `ci` subcommand — only `scan`).
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
