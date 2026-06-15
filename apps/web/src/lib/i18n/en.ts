@@ -8,6 +8,24 @@
  * matching groups in `de.ts`.
  */
 export const en = {
+  // --- Runtime server configuration (first-start) ------------------------
+  server: {
+    title: 'Set up server',
+    subtitle: 'Enter your Aidlog server address. It is stored only on this device.',
+    urlLabel: 'Server address',
+    urlPlaceholder: 'https://aidlog.example.org',
+    hint: 'Full address including https:// — where your server is reachable.',
+    test: 'Test connection',
+    testing: 'Testing …',
+    reachable: 'Server reachable.',
+    unreachable: 'Server not reachable. Please check the address.',
+    invalidUrl: 'Invalid address. Please enter a full https:// URL.',
+    save: 'Save & continue',
+    note: 'You can change the server later at any time.',
+    change: 'Change server',
+    connectedTo: 'Connected to',
+    sameOrigin: 'same server (default)',
+  },
   // --- Training / exercise mode (Übungs-/Demo-Modus) ---------------------
   training: {
     checkbox: 'Training deployment (demo/exercise)',

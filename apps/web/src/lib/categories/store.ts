@@ -21,6 +21,7 @@ import {
   type UpsertCategoryRequest,
 } from '@aidlog/contracts';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 import type { DocSchema } from '$lib/schemas/types';
 import { activeSchema } from '$lib/schemas/store';
 import {
@@ -46,7 +47,7 @@ function isCategory(v: unknown): v is ProtocolCategory {
 }
 
 function apiBase(): string {
-  return (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  return getApiBase();
 }
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {

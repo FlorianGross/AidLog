@@ -16,10 +16,14 @@ import { branding } from './src/lib/branding';
  *
  *  - We deliberately DO NOT set `server.url`. The app does not load remote HTML;
  *    it serves the bundled static shell and talks to the remote API
- *    CROSS-ORIGIN. The remote API base URL is configured at BUILD TIME via the
- *    `VITE_API_BASE_URL` env var (see apps/web/src/lib/api.ts), NOT here. That
- *    same env var also auto-extends the CSP `connect-src` (svelte.config.js) so
- *    the cross-origin API calls are permitted from the native WebView.
+ *    CROSS-ORIGIN. The remote API base URL is configured by the USER at FIRST
+ *    START (runtime config, persisted locally) when the build sets
+ *    `VITE_RUNTIME_API_CONFIG=1` — so one signed binary works against any
+ *    self-hosted server with no rebuild (see apps/web/src/lib/config/serverUrl.ts).
+ *    That flag also widens CSP `connect-src` to any `https:` origin
+ *    (svelte.config.js) so the cross-origin API calls are permitted from the
+ *    native WebView. A fixed `VITE_API_BASE_URL` at build time still works as a
+ *    pre-baked alternative.
  *
  *  - `appId` is vendor-neutral. An organisation publishing its own build MUST
  *    change this to its own reverse-DNS id (e.g. `org.example.aidlog`) before

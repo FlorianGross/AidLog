@@ -22,6 +22,7 @@
  */
 import { ROUTES, type OrgPublicInfo, type PublicIdentity } from '@aidlog/contracts';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 import * as store from '$lib/store';
 import { getSession } from '$lib/crypto';
 
@@ -85,8 +86,7 @@ async function authedGet<T>(path: string): Promise<T> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const token = api.getToken();
   if (token) headers.authorization = `Bearer ${token}`;
-  const base =
-    (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  const base = getApiBase();
   const res = await fetch(base + path, { method: 'GET', headers });
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
   return (await res.json()) as T;

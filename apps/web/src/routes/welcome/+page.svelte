@@ -11,6 +11,11 @@
   import { t } from '$lib/i18n';
   import { branding } from '$lib/branding';
   import { Icon } from '$lib/ui';
+  import { isServerConfigEnabled, getApiBase } from '$lib/config/serverUrl';
+
+  // Only offer the server switch on builds that use runtime server config.
+  const serverConfigurable = isServerConfigEnabled();
+  const currentServer = $derived(getApiBase());
 
   const options = [
     {
@@ -81,4 +86,15 @@
       >{$t('auth.unlock')}</a
     >
   </p>
+
+  {#if serverConfigurable}
+    <p class="text-center text-xs text-subtle">
+      {$t('server.connectedTo')}
+      <span class="font-medium text-muted">{currentServer || $t('server.sameOrigin')}</span>
+      ·
+      <a class="font-medium text-brand underline-offset-2 hover:underline" href="/server/"
+        >{$t('server.change')}</a
+      >
+    </p>
+  {/if}
 </section>

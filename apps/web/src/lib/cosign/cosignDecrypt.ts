@@ -17,6 +17,7 @@ import { crypto } from '@aidlog/crypto-core';
 import type { EncryptedBlobRef, ProtocolRecord } from '@aidlog/contracts';
 import { getSession } from '$lib/crypto';
 import { api } from '$lib/api';
+import { getApiBase } from '$lib/config/serverUrl';
 import { fieldKeyFromLabel } from '$lib/doc/finalize';
 
 export interface OpenedRecord {
@@ -38,8 +39,7 @@ export function openRecordDek(record: ProtocolRecord): Uint8Array {
 
 /** Best-effort blob download. Returns null if no download route is available. */
 async function fetchBlobCiphertext(blobId: string): Promise<Uint8Array | null> {
-  const base =
-    (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ?? '';
+  const base = getApiBase();
   const token = api.getToken();
   const headers: Record<string, string> = {};
   if (token) headers.authorization = `Bearer ${token}`;

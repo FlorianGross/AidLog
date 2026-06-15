@@ -8,6 +8,23 @@
 import type { LocaleMessages } from './index';
 
 export const ru: LocaleMessages = {
+  server: {
+    title: 'Настройка сервера',
+    subtitle: 'Введите адрес вашего сервера Aidlog. Он хранится только на этом устройстве.',
+    urlLabel: 'Адрес сервера',
+    urlPlaceholder: 'https://aidlog.example.org',
+    hint: 'Полный адрес, включая https:// — адрес, по которому доступен ваш сервер.',
+    test: 'Проверить соединение',
+    testing: 'Проверка …',
+    reachable: 'Сервер доступен.',
+    unreachable: 'Сервер недоступен. Проверьте адрес.',
+    invalidUrl: 'Недопустимый адрес. Введите полный адрес https://.',
+    save: 'Сохранить и продолжить',
+    note: 'Вы можете изменить сервер позже в любое время.',
+    change: 'Изменить сервер',
+    connectedTo: 'Подключено к',
+    sameOrigin: 'тот же сервер (по умолчанию)',
+  },
   app: {
     name: 'Aidlog',
     tagline: 'Документация выездов со сквозным шифрованием',
