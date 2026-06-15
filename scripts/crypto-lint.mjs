@@ -51,6 +51,12 @@ const CONFIG = {
     'coverage',
     '.pnpm-store',
     '.turbo',
+    // Generated Capacitor native projects: they bundle a COPY of the built web
+    // assets (minified Svelte runtime etc.), so scanning them only yields
+    // false positives on third-party minified code. Regenerated via `cap add` /
+    // `cap sync`; gitignored. The real source is linted in apps/web/src.
+    'android',
+    'ios',
   ]),
 
   /** Pragma that allowlists a single line (reason after the colon is required). */

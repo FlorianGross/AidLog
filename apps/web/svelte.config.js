@@ -2,6 +2,34 @@ import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /**
+ * CSP `connect-src` for the API.
+ *
+ * The WEB/PWA build is same-origin: the API lives at `/api` on the same host,
+ * so `'self'` is sufficient and the directive stays EXACTLY `['self']`.
+ *
+ * A NATIVE (Capacitor) build is different: the WebView serves the bundled
+ * static shell from a LOCAL origin (Android `https://localhost`, iOS
+ * `capacitor://localhost`) while the API lives on a REMOTE host. That remote
+ * host is therefore CROSS-ORIGIN, and the browser would block every `fetch`
+ * unless its origin is in `connect-src`. The native build sets the remote API
+ * via `VITE_API_BASE_URL` (same var the app uses to point `fetch` at the API),
+ * so we read it here and append ONLY that origin.
+ *
+ * When the var is unset (the normal web/PWA build) `connect-src` is byte-for-
+ * byte unchanged: just `['self']`. The parse is defensive — invalid values are
+ * ignored rather than breaking the build.
+ */
+const connectSrc = ['self'];
+const apiBaseUrl = process.env.VITE_API_BASE_URL;
+if (apiBaseUrl) {
+  try {
+    connectSrc.push(new URL(apiBaseUrl).origin);
+  } catch {
+    // Invalid VITE_API_BASE_URL — ignore and keep connect-src at 'self'.
+  }
+}
+
+/**
  * SvelteKit config.
  *
  * We use `adapter-static` because Aidlog is an offline-first PWA: the whole app
@@ -46,7 +74,10 @@ const config = {
         'style-src': ['self', 'unsafe-inline'],
         'img-src': ['self', 'blob:', 'data:'],
         'font-src': ['self'],
-        'connect-src': ['self'],
+        // 'self' for the same-origin web/PWA build; for a native Capacitor
+        // build the remote API origin (derived from VITE_API_BASE_URL above) is
+        // appended so the cross-origin WebView can reach the API.
+        'connect-src': connectSrc,
         'worker-src': ['self', 'blob:'],
         'manifest-src': ['self'],
         'object-src': ['none'],

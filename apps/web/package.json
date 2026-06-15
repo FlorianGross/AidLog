@@ -14,7 +14,12 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "cap:sync": "vite build && cap sync",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios"
   },
   "dependencies": {
     "@aidlog/contracts": "workspace:*",
@@ -24,6 +29,10 @@
     "idb": "^8.0.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8",
+    "@capacitor/cli": "^8",
+    "@capacitor/core": "^8",
+    "@capacitor/ios": "^8",
     "@playwright/test": "^1.60.0",
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.65.1",
