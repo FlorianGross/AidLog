@@ -30,7 +30,7 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.2.4",
-    "@types/node": "^22.7.4",
+    "@types/node": "^25.9.3",
     "@vite-pwa/sveltekit": "^0.6.7",
     "autoprefixer": "^10.4.20",
     "fake-indexeddb": "^6.0.0",
