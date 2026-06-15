@@ -118,6 +118,13 @@ export async function finalizeDraft(args: FinalizeArgs): Promise<FinalizeResult>
     seq,
     prevHash,
     author: s.identity,
+    // PERSISTENT author seal (independent of shiftOpen): every record finalized
+    // here — full protocol, quick-entry and journal all funnel through this
+    // function — is additionally sealed to the author's own identity so the
+    // author keeps read access to their own documentation across devices and
+    // after shift close ("Meine Einsätze"). The transient `helper` wrapper below
+    // is still only added while the shift is open.
+    authorPublic: s.publicIdentity,
     org,
     helper: args.shiftOpen ? s.publicIdentity : null,
     supervisors,

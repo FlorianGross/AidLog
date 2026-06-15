@@ -37,6 +37,7 @@ import {
   type LogConsumptionRequest,
   type MaterialItem,
   type MaterialListResponse,
+  type MyDeploymentsResponse,
   type PurgeRequest,
   type PurgeResponse,
   type RetentionPolicy,
@@ -180,6 +181,17 @@ export class ApiClient {
     if (cursor) params.set('cursor', cursor);
     if (limit) params.set('limit', String(limit));
     return this.request(`${ROUTES.sync}?${params.toString()}`, { method: 'GET' });
+  }
+
+  /**
+   * GET the caller's OWN authored deployments (cross-device "Meine Einsätze").
+   * Returns NON-secret routing metadata only — ids, the caller's record count,
+   * and first/last client timestamps. No ciphertext/titles/categories (the
+   * server cannot know those). The client recovers labels by decrypting the
+   * synced records with its own identity (persistent 'author' wrapper).
+   */
+  myDeployments(): Promise<MyDeploymentsResponse> {
+    return this.request(ROUTES.myDeployments, { method: 'GET' });
   }
 
   // --- blobs --------------------------------------------------------------

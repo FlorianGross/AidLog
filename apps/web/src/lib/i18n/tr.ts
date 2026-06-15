@@ -336,6 +336,7 @@ export const tr: LocaleMessages = {
     exportPdf: 'PDF / yazdır',
     tabVitals: 'Vital seyir',
     tabBodymap: 'Vücut haritası & fotoğraflar',
+    extraModules: 'Ek modüller',
   },
   selfintake: {
     start: 'Öz beyanı başlat',
@@ -390,6 +391,22 @@ export const tr: LocaleMessages = {
     explainTitle: '“Kurcalama güvenli” ne demek?',
     explain:
       'Her kayıt bu cihazda kriptografik olarak imzalanır ve bir öncekiyle zincirlenir (karma zinciri). Sonradan yapılan bir değişiklik – sunucu tarafından bile – imzayı veya zinciri bozar ve burada hemen hata olarak görünür. Düzeltmeler asla hiçbir şeyi silmez: Eskinin yerini alan yeni bir kayıt eklerler. Böylece tüm geçmiş izlenebilir ve kanıtlanabilir kalır.',
+  },
+  myEinsaetze: {
+    nav: 'Görevlerim',
+    title: 'Görevlerim',
+    subtitle: 'Belgelediğim görevler – cihazlar arası, salt okunur',
+    empty: 'Henüz kendi göreviniz yok',
+    emptyHint: 'Bir görevi belgelediğinizde burada görünür – diğer cihazlarda da.',
+    offlineTitle: 'Bağlantı yok',
+    offlineHint: 'Lütfen eşitleyin: „Görevlerim“ için bir kez sunucu bağlantısı gerekir.',
+    untitled: 'Başlıksız görev',
+    forwardOnlyHint:
+      'Kendi belgelediğiniz görevlere kalıcı okuma erişiminiz vardır – vardiya bittikten sonra ve her cihazda. Not: Yalnızca bu işlevden sonra oluşturulan görevler yeni cihazlarda okunabilir; daha eski kayıtları yalnızca kuruluş/yönetici çözebilir.',
+    legacyBadge: 'çözülemiyor',
+    readOnlyBanner: 'Tamamlandı – salt okunur. Bu görev artık düzenlenemez.',
+    dateLabel: 'Tarih',
+    countLabel: 'Kayıtlar',
   },
   vitals: {
     title: 'Vital parametre seyri',

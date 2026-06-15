@@ -53,6 +53,15 @@ export interface BuildRecordArgs {
   prevHash: string | null;
   /** The author's unwrapped identity (helper). */
   author: IdentityKeyPair;
+  /**
+   * The author's PUBLIC identity. The DEK is ALWAYS additionally sealed to this
+   * as `recipientType: 'author'`, so the author retains read access to records
+   * THEY documented PERMANENTLY and across devices — even after shift close
+   * (which deletes only the transient 'helper' wrapper). This powers the "Meine
+   * Einsätze" view. Optional only for backward-compatible callers/tests; when
+   * omitted it is derived from `author` so the wrapper is still produced.
+   */
+  authorPublic?: PublicIdentity | null;
   /** Org public identity — DEK is ALWAYS sealed to this. */
   org: PublicIdentity;
   /**
@@ -125,6 +134,11 @@ export async function buildRecord(args: BuildRecordArgs): Promise<BuiltRecord> {
       blobCiphertexts.push({ blobId, ciphertext });
     }
 
+    // The author's PUBLIC identity (derived from the unwrapped identity when the
+    // caller did not pass it explicitly). Used both for the persistent 'author'
+    // seal below and for `authorKeyId` on the signable record.
+    const authorPub = args.authorPublic ?? crypto.toPublicIdentity(args.author);
+
     // 4. Seal the DEK to recipients. Org always; helper while shift open.
     const recipients: { type: 'org' | 'helper'; identity: PublicIdentity }[] = [
       { type: 'org', identity: args.org },
@@ -132,18 +146,29 @@ export async function buildRecord(args: BuildRecordArgs): Promise<BuiltRecord> {
     if (args.helper) recipients.push({ type: 'helper', identity: args.helper });
     const sealedKeys: SealedKey[] = crypto.buildSealedKeys(dek, recipients);
 
+    // ALWAYS seal the DEK to the AUTHOR's own identity as a PERSISTENT 'author'
+    // wrapper, so the author can decrypt records THEY documented on ANY device and
+    // PERMANENTLY — shift-close (apps/api/src/routes/shifts.ts) deletes only the
+    // transient 'helper' wrapper, so this one survives. This is the explicitly
+    // chosen "Meine Einsätze" tradeoff: the author keeps read access to their own
+    // documentation. Dedupe by keyId so an author who already got a 'helper' (or
+    // 'org') wrapper for the same identity doesn't receive a redundant duplicate.
+    const present = new Set(sealedKeys.map((k) => k.recipientKeyId));
+    if (!present.has(authorPub.keyId)) {
+      sealedKeys.push(...buildExtraSealedKeys(dek, 'author', [authorPub]));
+      present.add(authorPub.keyId);
+    }
+
     // Additionally seal to active supervisors (admins + leads) so they can read
     // this deployment's records for statistics with their own box key. Skip any
     // whose keyId already has a wrapper (e.g. the author is themselves a lead and
-    // got a 'helper' wrapper) to avoid a redundant duplicate.
-    const present = new Set(sealedKeys.map((k) => k.recipientKeyId));
+    // got a 'helper'/'author' wrapper) to avoid a redundant duplicate.
     const supervisors = (args.supervisors ?? []).filter((s) => !present.has(s.keyId));
     if (supervisors.length > 0) {
       sealedKeys.push(...buildExtraSealedKeys(dek, 'supervisor', supervisors));
     }
 
     // 5. Assemble the signable record (everything except hash + signature).
-    const authorPub = crypto.toPublicIdentity(args.author);
     const signable: SignableRecord = {
       envelopeVersion: ENVELOPE_VERSION,
       id: uuid(),

@@ -25,7 +25,7 @@
   import { computeValue, resolveBand, vitalStatus } from '$lib/scores';
   import { meetsQualification, qualificationLabel } from '$lib/qualifications';
   import SignaturePad from '$lib/signature/SignaturePad.svelte';
-  import { Icon } from '$lib/ui';
+  import { Icon, ChipSelect, Toggle } from '$lib/ui';
   import { t } from '$lib/i18n';
 
   interface Props {
@@ -88,6 +88,13 @@
 
   function toStr(v: unknown): string {
     return v === undefined || v === null ? '' : String(v);
+  }
+
+  // A `select` with a SHORT option list renders as tap-chips (fast on a tablet);
+  // longer lists keep the native <select>. Threshold is inclusive.
+  const CHIP_SELECT_MAX = 6;
+  function isChipSelect(field: DocField): boolean {
+    return field.type === 'select' && (field.options?.length ?? 0) <= CHIP_SELECT_MAX;
   }
 
   /** Current local time as "HH:mm" (for `time` fields). */
@@ -206,6 +213,16 @@
       value={toStr(value)}
       oninput={(e) => onChange(e.currentTarget.value)}
     ></textarea>
+  {:else if field.type === 'select' && isChipSelect(field)}
+    <ChipSelect
+      options={(field.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
+      value={toStr(value)}
+      ariaLabelledby={id}
+      allowNone={true}
+      noneLabel={`— ${$t('common.none')} —`}
+      disabled={effectiveReadonly}
+      onchange={(v) => onChange(v)}
+    />
   {:else if field.type === 'select'}
     <select
       {id}
@@ -246,21 +263,14 @@
       {/each}
     </div>
   {:else if field.type === 'boolean'}
-    <label
-      class="flex min-h-touch items-center gap-3 rounded-xl border border-line-strong bg-surface-1 px-3 text-base text-fg"
-    >
-      <input
-        {id}
-        type="checkbox"
-        class="h-6 w-6 rounded border border-line-strong bg-surface-1 accent-brand"
-        disabled={effectiveReadonly}
-        checked={!!value}
-        onchange={(e) => onChange(e.currentTarget.checked)}
-      />
-      <span>
-        {field.label}{#if field.required}<span class="text-danger" aria-hidden="true"> *</span>{/if}
-      </span>
-    </label>
+    <Toggle
+      {id}
+      checked={!!value}
+      label={field.label}
+      required={field.required}
+      disabled={effectiveReadonly}
+      onchange={(checked) => onChange(checked)}
+    />
   {:else if field.type === 'date'}
     <input
       {id}

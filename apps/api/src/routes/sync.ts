@@ -5,10 +5,14 @@
  * the caller is permitted to read. Two scopes:
  *
  *  - scope=self (default): the existing per-author view —
- *      · admin/lead: every record in their org (org + own wrappers).
+ *      · admin/lead: every record in their org (org + own wrappers, incl. their
+ *                    own persistent 'author' wrapper).
  *      · helper:     records they authored, AND only the sealedKeys still sealed
- *                    to THEM or to the org — helper wrappers removed at shift
- *                    close are simply gone (soft revocation, §5).
+ *                    to THEM (the transient 'helper' wrapper while the shift is
+ *                    open, PLUS the PERSISTENT 'author' wrapper that survives
+ *                    shift close — "Meine Einsätze") or to the org. Helper
+ *                    wrappers removed at shift close are simply gone (soft
+ *                    revocation, §5); the 'author' wrapper is not removed.
  *
  *  - scope=org (admin/lead ONLY): EVERY record in the org, each carrying its
  *      ORG-type sealedKeys PLUS any wrapper sealed to the CALLER themselves
@@ -107,8 +111,14 @@ export async function syncRoutes(app: FastifyInstance): Promise<void> {
         const isMine = sk.recipientKeyId === session.keyId;
         if (!isOrg && !isMine) continue;
       } else if (session.role === 'helper') {
-        // Self scope, helper: only org wrappers + wrappers sealed to itself.
-        const isMine = sk.recipientType === 'helper' && sk.recipientKeyId === session.keyId;
+        // Self scope, helper: only org wrappers + wrappers sealed to itself. This
+        // includes BOTH the transient 'helper' wrapper (present until shift close)
+        // AND the PERSISTENT 'author' wrapper (survives shift close), so the
+        // helper keeps cross-device read access to records they authored — the
+        // "Meine Einsätze" feature. Wrappers addressed to anyone else are skipped.
+        const isMine =
+          (sk.recipientType === 'helper' || sk.recipientType === 'author') &&
+          sk.recipientKeyId === session.keyId;
         const isOrg = sk.recipientType === 'org';
         if (!isMine && !isOrg) continue;
       }

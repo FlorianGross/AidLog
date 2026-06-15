@@ -17,6 +17,7 @@ import { supervisorRoutes } from './supervisors.js';
 import { retentionRoutes } from './retention.js';
 import { materialRoutes } from './material.js';
 import { cirsRoutes } from './cirs.js';
+import { myRoutes } from './my.js';
 import { healthRoutes } from './health.js';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
@@ -39,4 +40,5 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await retentionRoutes(app);
   await materialRoutes(app);
   await cirsRoutes(app);
+  await myRoutes(app);
 }

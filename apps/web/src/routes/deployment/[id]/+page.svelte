@@ -133,6 +133,11 @@
   // Empty until the schema effect picks the first section (or a user taps a tab).
   let activeKey = $state('');
   let drawerOpen = $state(false);
+  // "Zusatzmodule" group in the drawer: collapsed by default to keep the core
+  // ABCDE/SAMPLER flow front-and-centre. Auto-opens when an extra module is the
+  // active tab (e.g. after a deep link or selecting one), so the selection stays
+  // visible without the user re-expanding it.
+  let extrasOpen = $state(false);
   let status = $state<string | null>(null);
   let busy = $state(false);
   let finalized = $state(false);
@@ -156,6 +161,14 @@
   let signatures = $state<Record<string, DraftSignature>>({});
   // Pending record photos (body-map feature).
   let photos = $state<DraftPhotoEntry[]>([]);
+
+  // READ-ONLY gate: a CLOSED deployment (shift ended) OR an already-finalized
+  // draft opens schreibgeschützt — no saving, finalizing, or section editing.
+  // Past Einsätze opened from "Meine Einsätze" land on the Verlauf view, but if
+  // the editor is reached for a closed deployment it must not be editable.
+  // Creating NEW deployments and editing OPEN ones is unchanged.
+  const closed = $derived(meta?.status === 'closed');
+  const readOnly = $derived(finalized || closed);
 
   const signedFields = $derived(new Set(Object.keys(signatures)));
   const activeSection = $derived(
@@ -192,6 +205,36 @@
   const suggestedGcs = $derived(
     gcsFromSubscores(values['d_gcs_augen'], values['d_gcs_verbal'], values['d_gcs_motorik']),
   );
+
+  // Dedicated (non-schema) feature panels, grouped under a collapsible
+  // "Zusatzmodule" section in the drawer. Each carries its own count badge so
+  // nothing is hidden when the group is collapsed.
+  const extraTabs = $derived([
+    { key: VITALS_TAB, badge: '♥', title: $t('doc.tabVitals'), count: vitals.length },
+    {
+      key: BODYMAP_TAB,
+      badge: '⚑',
+      title: $t('doc.tabBodymap'),
+      count: markers.length + photos.length,
+    },
+    { key: ECG_TAB, badge: '〜', title: $t('ecg.tab'), count: ecgItemCount(ecg) },
+    { key: RESUS_TAB, badge: '✚', title: $t('resus.tab'), count: resus.events.length },
+    { key: CONSENT_TAB, badge: '§', title: $t('consent.tab'), count: consent.items.length },
+    {
+      key: SELFINTAKE_TAB,
+      badge: '🗣',
+      title: $t('selfintake.title'),
+      count: selfIntake ? 1 : 0,
+    },
+  ]);
+  // Sum of all extra-module indicators, shown on the collapsed group header.
+  const extrasCount = $derived(extraTabs.reduce((n, tab) => n + tab.count, 0));
+
+  // Keep the group expanded whenever an extra module is the active tab so the
+  // current selection is never hidden behind a collapsed header.
+  $effect(() => {
+    if (SPECIAL_TABS.has(activeKey)) extrasOpen = true;
+  });
 
   // Print/PDF data (in-memory, already decrypted).
   const printData = $derived<PrintRecordData | null>(
@@ -275,7 +318,7 @@
   }
 
   function scheduleSave(): void {
-    if (finalized) return;
+    if (readOnly) return;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       void saveDraft(currentDraft()).catch(() => {});
@@ -333,7 +376,7 @@
 
   // --- Patient self-intake (Selbstauskunft) ---------------------------------
   function startSelfIntake(): void {
-    if (finalized) return;
+    if (readOnly) return;
     kioskActive = true;
   }
 
@@ -437,6 +480,7 @@
   }
 
   async function saveDraftNow(): Promise<void> {
+    if (readOnly) return;
     busy = true;
     status = $t('common.loading');
     try {
@@ -450,7 +494,7 @@
   }
 
   async function finalize(): Promise<void> {
-    if (finalized || busy) return;
+    if (readOnly || busy) return;
     // HARD finalize gate: required DocFields (+ group minItems) must be present.
     // Honours signature capture via `signedFields`. Quick-entry / journal use
     // separate save paths and are unaffected.
@@ -591,7 +635,7 @@
             <span class="hidden sm:inline">{$t('eventstats.link')}</span>
           </a>
         {/if}
-        {#if !finalized}
+        {#if !readOnly}
           <button type="button" class="btn-secondary px-4 text-sm" onclick={startSelfIntake}>
             <Icon name="users" size={18} />
             <span class="hidden sm:inline">{$t('selfintake.start')}</span>
@@ -607,7 +651,7 @@
           <button type="button" class="btn-primary px-4 text-sm" disabled={busy} onclick={finalize}>
             {$t('doc.finalize')}
           </button>
-        {:else}
+        {:else if finalized}
           <button type="button" class="btn-secondary px-4 text-sm" onclick={exportPdf}>
             <Icon name="file-text" size={18} />
             {$t('doc.exportPdf')}
@@ -699,6 +743,16 @@
     </p>
   {/if}
 
+  {#if closed}
+    <p
+      class="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2 text-sm font-medium text-muted"
+      role="status"
+    >
+      <Icon name="lock" size={18} />
+      {$t('myEinsaetze.readOnlyBanner')}
+    </p>
+  {/if}
+
   {#if status}
     <p class="rounded-xl bg-brand-soft px-4 py-2 text-sm text-brand-soft-fg" aria-live="polite">
       {status}
@@ -765,46 +819,75 @@
             </button>
           </li>
         {/each}
-
-        <!-- Dedicated feature panels (not generic schema sections). -->
-        {#each [{ key: VITALS_TAB, badge: '♥', title: $t('doc.tabVitals'), count: vitals.length }, { key: BODYMAP_TAB, badge: '⚑', title: $t('doc.tabBodymap'), count: markers.length + photos.length }, { key: ECG_TAB, badge: '〜', title: $t('ecg.tab'), count: ecgItemCount(ecg) }, { key: RESUS_TAB, badge: '✚', title: $t('resus.tab'), count: resus.events.length }, { key: CONSENT_TAB, badge: '§', title: $t('consent.tab'), count: consent.items.length }, { key: SELFINTAKE_TAB, badge: '🗣', title: $t('selfintake.title'), count: selfIntake ? 1 : 0 }] as tab (tab.key)}
-          {@const isActive = activeKey === tab.key}
-          <li>
-            <button
-              type="button"
-              aria-current={isActive ? 'true' : undefined}
-              class={`flex min-h-touch w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
-                isActive
-                  ? 'border-line-strong bg-surface-1'
-                  : 'border-transparent hover:bg-surface-2'
-              }`}
-              onclick={() => {
-                activeKey = tab.key;
-                drawerOpen = false;
-              }}
-            >
-              <span
-                class={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-semibold ${
-                  isActive ? 'bg-brand text-brand-fg' : 'bg-surface-2 text-muted'
-                }`}
-                aria-hidden="true"
-              >
-                {tab.badge}
-              </span>
-              <span class="min-w-0 flex-1">
-                <span
-                  class={`block truncate text-base font-medium ${isActive ? 'text-fg' : 'text-muted'}`}
-                >
-                  {tab.title}
-                </span>
-              </span>
-              {#if tab.count > 0}
-                <span class="flex-none"><Badge tone="muted">{tab.count}</Badge></span>
-              {/if}
-            </button>
-          </li>
-        {/each}
       </ul>
+
+      <!-- Zusatzmodule: the dedicated (non-schema) feature panels, grouped under
+           a collapsible header so the core ABCDE/SAMPLER flow above stays
+           prominent. Collapsed by default; each module keeps its count badge so
+           nothing is hidden. Auto-expands when an extra module is active. -->
+      <div class="mt-4 border-t border-line pt-3">
+        <button
+          type="button"
+          class="flex min-h-touch w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-surface-2"
+          aria-expanded={extrasOpen}
+          aria-controls="extra-modules"
+          onclick={() => (extrasOpen = !extrasOpen)}
+        >
+          <span
+            class={`flex-none text-subtle transition-transform ${extrasOpen ? 'rotate-90' : ''}`}
+          >
+            <Icon name="chevron-right" size={18} />
+          </span>
+          <span class="flex-1 text-xs font-semibold uppercase tracking-wide text-subtle">
+            {$t('doc.extraModules')}
+          </span>
+          {#if extrasCount > 0}
+            <span class="flex-none"><Badge tone="muted">{extrasCount}</Badge></span>
+          {/if}
+        </button>
+
+        {#if extrasOpen}
+          <ul id="extra-modules" class="mt-1 space-y-1">
+            {#each extraTabs as tab (tab.key)}
+              {@const isActive = activeKey === tab.key}
+              <li>
+                <button
+                  type="button"
+                  aria-current={isActive ? 'true' : undefined}
+                  class={`flex min-h-touch w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
+                    isActive
+                      ? 'border-line-strong bg-surface-1'
+                      : 'border-transparent hover:bg-surface-2'
+                  }`}
+                  onclick={() => {
+                    activeKey = tab.key;
+                    drawerOpen = false;
+                  }}
+                >
+                  <span
+                    class={`flex h-9 w-9 flex-none items-center justify-center rounded-full text-sm font-semibold ${
+                      isActive ? 'bg-brand text-brand-fg' : 'bg-surface-2 text-muted'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {tab.badge}
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span
+                      class={`block truncate text-base font-medium ${isActive ? 'text-fg' : 'text-muted'}`}
+                    >
+                      {tab.title}
+                    </span>
+                  </span>
+                  {#if tab.count > 0}
+                    <span class="flex-none"><Badge tone="muted">{tab.count}</Badge></span>
+                  {/if}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
     </nav>
 
     <!-- MAIN pane -->
@@ -823,7 +906,7 @@
           </div>
           <VitalTrendEditor
             readings={vitals}
-            readonly={finalized}
+            readonly={readOnly}
             {suggestedGcs}
             onchange={onVitals}
           />
@@ -847,7 +930,7 @@
               <p class="mt-0.5 text-sm text-muted">{$t('resus.subtitle')}</p>
             </div>
           </div>
-          <ResusPanel log={resus} readonly={finalized} onchange={onResus} />
+          <ResusPanel log={resus} readonly={readOnly} onchange={onResus} />
         </div>
       {:else if activeKey === BODYMAP_TAB}
         <div class="card">
@@ -864,7 +947,7 @@
           <BodyMapPhotoEditor
             {markers}
             photos={photos as DraftPhoto[]}
-            readonly={finalized}
+            readonly={readOnly}
             onmarkers={onMarkers}
             onphotos={onPhotos}
           />
@@ -881,7 +964,7 @@
               <p class="mt-0.5 text-sm text-muted">{$t('ecg.subtitle')}</p>
             </div>
           </div>
-          <EcgPanel record={ecg} readonly={finalized} onchange={onEcg} />
+          <EcgPanel record={ecg} readonly={readOnly} onchange={onEcg} />
         </div>
       {:else if activeKey === CONSENT_TAB}
         <div class="card">
@@ -899,7 +982,7 @@
             record={consent}
             signaturePreviews={consentSigUrls}
             {values}
-            readonly={finalized}
+            readonly={readOnly}
             onchange={onConsent}
             onsignature={onSignature}
           />
@@ -915,7 +998,7 @@
               <h2 class="text-lg font-semibold text-fg">{$t('selfintake.title')}</h2>
               <p class="mt-0.5 text-sm text-muted">{$t('selfintake.subtitle')}</p>
             </div>
-            {#if !finalized}
+            {#if !readOnly}
               <button type="button" class="btn-primary px-4 text-sm" onclick={startSelfIntake}>
                 <Icon name="users" size={18} />
                 {selfIntake ? $t('selfintake.reopen') : $t('selfintake.start')}
@@ -991,7 +1074,7 @@
             section={activeSection}
             {values}
             {signedFields}
-            readonly={finalized}
+            readonly={readOnly}
             userQualification={$ownQualification}
             onchange={onField}
             onsignature={onSignature}

@@ -484,4 +484,21 @@ export const en = {
     displayGloveHint:
       'Enlarges the font and touch targets for operation with gloves or with limited vision.',
   },
+  // --- "Meine Einsätze" (my deployments, cross-device, read-only) -----------
+  myEinsaetze: {
+    nav: 'My deployments',
+    title: 'My deployments',
+    subtitle: 'Deployments I documented — cross-device, read-only',
+    empty: 'No deployments of your own yet',
+    emptyHint: 'Once you document a deployment it appears here — on any device, too.',
+    offlineTitle: 'No connection',
+    offlineHint: 'Please synchronise: "My deployments" needs a server connection once.',
+    untitled: 'Untitled deployment',
+    forwardOnlyHint:
+      'You keep permanent read access to deployments you documented yourself — even after the shift ends and on any device. Note: only deployments created from this feature onward are readable here on new devices; older records can be decrypted only by the organisation/admin.',
+    legacyBadge: 'not decryptable',
+    readOnlyBanner: 'Closed — read-only. This deployment can no longer be edited.',
+    dateLabel: 'Date',
+    countLabel: 'Records',
+  },
 } as const;
