@@ -67,11 +67,26 @@ const CODE_PREFIX = 'aidlog-transfer';
 /** PIN alphabet: unambiguous (no 0/O/1/I/l) uppercase+digits, length-32. */
 const PIN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-/** Generate a random one-time PIN (default 7 chars) from the safe alphabet. */
+/**
+ * Generate a random one-time PIN (default 7 chars) from the safe alphabet.
+ *
+ * Uses REJECTION SAMPLING so each character is drawn uniformly with no modulo
+ * bias: bytes in the biased tail (>= the largest multiple of the alphabet size
+ * that fits in a byte) are discarded and re-drawn. For the current 32-char
+ * alphabet 256 is an exact multiple so nothing is ever rejected, but this stays
+ * unbiased — and safe — if the alphabet length ever changes.
+ */
 export function generateTransferPin(length = 7): string {
-  const idx = globalThis.crypto.getRandomValues(new Uint8Array(length));
+  const n = PIN_ALPHABET.length;
+  const limit = 256 - (256 % n); // largest multiple of n within a byte
+  const buf = new Uint8Array(1);
   let pin = '';
-  for (let i = 0; i < length; i++) pin += PIN_ALPHABET[idx[i]! % PIN_ALPHABET.length];
+  while (pin.length < length) {
+    globalThis.crypto.getRandomValues(buf);
+    const b = buf[0]!;
+    if (b >= limit) continue; // drop the biased tail and re-draw
+    pin += PIN_ALPHABET[b % n];
+  }
   return pin;
 }
 
