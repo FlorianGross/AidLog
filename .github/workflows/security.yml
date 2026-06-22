@@ -33,9 +33,9 @@ jobs:
       security-events: write # upload SARIF to the Security tab
       actions: read # CodeQL reads the workflow run for diff-aware analysis + status
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           config-file: ./.github/codeql-config.yml
@@ -46,7 +46,7 @@ jobs:
         # fail the job. Once enabled, CodeQL alerts populate the Security tab and
         # this becomes a real gate — flip continue-on-error back to false then.
         continue-on-error: true
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: '/language:javascript-typescript'
 
@@ -57,11 +57,11 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # full history so historical leaks are caught
       - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
           # No license needed for OSS public repos. Set GITLEAKS_LICENSE for orgs.
@@ -73,10 +73,10 @@ jobs:
     name: dependency-audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Enable Corepack
         run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -86,7 +86,7 @@ jobs:
       - name: OSV-Scanner (lockfile vulnerabilities)
         id: osv
         continue-on-error: true
-        uses: google/osv-scanner-action/osv-scanner-action@v1.9.0
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
           scan-args: |-
             --config=./osv-scanner.toml
@@ -112,10 +112,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Trivy filesystem scan (vuln + secret)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -135,7 +135,7 @@ jobs:
       # (USER node). Trivy's plain .trivyignore cannot scope-suppress an IaC check,
       # so we keep the scan visible-but-advisory rather than globally muting it.
       - name: Trivy config (IaC) scan (advisory)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: .
@@ -151,10 +151,10 @@ jobs:
     name: license-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Enable Corepack
         run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -178,10 +178,10 @@ jobs:
     name: sbom
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Enable Corepack
         run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -190,7 +190,7 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: npx --yes @cyclonedx/cyclonedx-npm@^1 --output-format json --output-file sbom.cdx.json || npx --yes @cyclonedx/cdxgen@^10 -t pnpm -o sbom.cdx.json .
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
